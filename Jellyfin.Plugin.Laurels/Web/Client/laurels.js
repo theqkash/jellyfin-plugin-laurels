@@ -27,7 +27,9 @@
     function injectStyle() {
         if (document.getElementById(STYLE_ID)) { return; }
         var css = [
-            '.laurels-block{display:block;position:relative;width:100%;clear:both;margin:.5em 0 .2em 0;grid-column:1 / -1;}',
+            '.laurels-block{display:block;position:relative;width:100%;margin:.2em 0 .6em 0;}',
+            '.layout-mobile .laurels-block{text-align:center;}',
+            '.layout-mobile .laurels-strip,.layout-mobile .laurels-awards{justify-content:center;}',
             '.laurels-strip{display:flex;flex-wrap:wrap;align-items:center;gap:.9em;margin:.3em 0 0 0;}',
             '.laurels-rating{display:inline-flex;align-items:center;gap:.35em;color:inherit;text-decoration:none;white-space:nowrap;opacity:.95}',
             '.laurels-rating:hover{opacity:1;text-decoration:none}',
@@ -219,12 +221,21 @@
         page.querySelectorAll('.laurels-block, .laurels-reviews').forEach(function (n) { n.remove(); });
     }
 
+    // On desktop the ribbon holding the misc-info row has a fixed height (7.2em) and centres its
+    // content, so anything added inside it overflows and overlaps. The block therefore goes at the
+    // top of the detail content column, which already has the same left offset as the ribbon text.
     function getBlock(page, misc) {
         var block = page.querySelector('.laurels-block');
         if (!block) {
             block = document.createElement('div');
             block.className = 'laurels-block';
-            misc.parentNode.insertBefore(block, misc.nextSibling);
+            var content = page.querySelector('.detailPageContent');
+            if (content) {
+                content.insertBefore(block, content.firstChild);
+            } else {
+                var ribbon = misc.closest('.detailRibbon') || misc;
+                ribbon.parentNode.insertBefore(block, ribbon.nextSibling);
+            }
         }
         return block;
     }
