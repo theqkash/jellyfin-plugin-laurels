@@ -32,7 +32,9 @@ public sealed class WebTransformHost : IHostedService
         }
 
         var handler = typeof(IndexHtmlTransform).GetMethod(nameof(IndexHtmlTransform.TransformAsync), BindingFlags.Public | BindingFlags.Static)!;
-        _registered = FileTransformationBridge.Register(TransformationId, "index.html", handler, _serviceProvider, _logger);
+        // The pattern is a regex matched against the requested path; an unanchored "index.html" would also
+        // match e.g. "user-home-index-html.<hash>.chunk.js" and corrupt it.
+        _registered = FileTransformationBridge.Register(TransformationId, @"(^|/)index\.html$", handler, _serviceProvider, _logger);
         IsActive = _registered;
         return Task.CompletedTask;
     }

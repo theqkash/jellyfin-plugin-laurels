@@ -20,8 +20,9 @@ public static class IndexHtmlTransform
             return html;
         }
 
+        // Only touch real HTML documents; anything without a closing body tag is left untouched.
         var idx = html.LastIndexOf("</body>", StringComparison.OrdinalIgnoreCase);
-        return idx < 0 ? html + ScriptTag : html.Insert(idx, ScriptTag);
+        return idx < 0 ? html : html.Insert(idx, ScriptTag);
     }
 
     /// <summary>
@@ -36,6 +37,12 @@ public static class IndexHtmlTransform
         }
 
         var transformed = Apply(html);
+        if (ReferenceEquals(transformed, html))
+        {
+            contents.Seek(0, SeekOrigin.Begin);
+            return;
+        }
+
         contents.Seek(0, SeekOrigin.Begin);
         contents.SetLength(0);
         var bytes = Encoding.UTF8.GetBytes(transformed);
