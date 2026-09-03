@@ -16,14 +16,29 @@ public sealed class AwardsService
     private readonly WikidataAwardsClient _client;
     private readonly AwardsIndex _index;
     private readonly ILogger<AwardsService> _logger;
+    private readonly AwardLibraryService _library;
+    private readonly MediaBrowser.Controller.Configuration.IServerConfigurationManager _serverConfig;
 
-    public AwardsService(ILibraryManager libraryManager, WikidataAwardsClient client, AwardsIndex index, ILogger<AwardsService> logger)
+    public AwardsService(ILibraryManager libraryManager, WikidataAwardsClient client, AwardsIndex index, AwardLibraryService library, MediaBrowser.Controller.Configuration.IServerConfigurationManager serverConfig, ILogger<AwardsService> logger)
     {
         _libraryManager = libraryManager;
         _client = client;
         _index = index;
+        _library = library;
+        _serverConfig = serverConfig;
         _logger = logger;
+        ApplyLanguage();
     }
+
+    /// <summary>Sets the text language from the plugin setting, falling back to the server UI culture.</summary>
+    public void ApplyLanguage()
+    {
+        var configured = Plugin.Instance?.Configuration.Language;
+        var culture = string.IsNullOrWhiteSpace(configured) ? _serverConfig.Configuration.UICulture : configured;
+        AwardText.Language = string.IsNullOrWhiteSpace(culture) ? "en" : culture.Trim().ToLowerInvariant();
+    }
+
+    public AwardLibraryService Library => _library;
 
     public AwardsIndex Index => _index;
 
@@ -34,6 +49,7 @@ public sealed class AwardsService
     /// </summary>
     public async Task RefreshAllAsync(bool force, IProgress<double>? progress, CancellationToken cancellationToken)
     {
+        ApplyLanguage();
         var families = EnabledFamilies;
         var membership = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
         foreach (var family in families)
@@ -58,7 +74,8 @@ public sealed class AwardsService
             }
 
             var existing = _index.Get(item.Id);
-            if (!force && existing is not null && existing.FetchedUtc + Ttl > DateTimeOffset.UtcNow)
+            if (!force && existing is not null && existing.FetchedUtc + Ttl > DateTimeOffset.UtcNow
+                && string.Equals(existing.Language, "en", StringComparison.OrdinalIgnoreCase))
             {
                 continue;
             }
@@ -72,7 +89,7 @@ public sealed class AwardsService
         foreach (var batch in pending.Chunk(WikidataAwardsClient.BatchSize))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var raw = await _client.GetAwardsAsync(batch.Select(b => b.ImdbId).ToList(), cancellationToken).ConfigureAwait(false);
+            var raw = await _client.GetAwardsAsync(batch.Select(b => b.ImdbId).ToList(), "en", cancellationToken).ConfigureAwait(false);
             if (raw is null)
             {
                 // Wikidata's public endpoint hiccups now and then; skip this batch (it stays pending for the
@@ -95,7 +112,7 @@ public sealed class AwardsService
             var byImdb = raw.GroupBy(r => r.ImdbId, StringComparer.OrdinalIgnoreCase).ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
             foreach (var (item, imdbId) in batch)
             {
-                var entry = new TitleAwards { ItemId = item.Id, ImdbId = imdbId, FetchedUtc = DateTimeOffset.UtcNow };
+                var entry = new TitleAwards { ItemId = item.Id, ImdbId = imdbId, FetchedUtc = DateTimeOffset.UtcNow, Language = "en" };
                 if (byImdb.TryGetValue(imdbId, out var rows))
                 {
                     entry.WikidataQid = rows[0].FilmQid;
@@ -107,6 +124,19 @@ public sealed class AwardsService
 
             done += batch.Length;
             progress?.Report(100.0 * done / Math.Max(1, pending.Count));
+        }
+
+        try
+        {
+            await _library.SyncAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Laurels/Library: syncing the awards library failed");
         }
 
         progress?.Report(100);

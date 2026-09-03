@@ -75,7 +75,16 @@ public sealed class WikidataAwardsClient
     /// Fetches every award statement for the given IMDb ids. Returns null when Wikidata could not be reached.
     /// </summary>
     public async Task<List<RawAward>?> GetAwardsAsync(IReadOnlyCollection<string> imdbIds, CancellationToken cancellationToken)
+        => await GetAwardsAsync(imdbIds, "en", cancellationToken).ConfigureAwait(false);
+
+    /// <summary>
+    /// Fetches every award statement for the given IMDb ids, with category labels in the given language
+    /// (English fallback). Returns null when Wikidata could not be reached.
+    /// </summary>
+    public async Task<List<RawAward>?> GetAwardsAsync(IReadOnlyCollection<string> imdbIds, string language, CancellationToken cancellationToken)
     {
+        var lang = string.IsNullOrWhiteSpace(language) ? "en" : language.Split('-')[0].ToLowerInvariant();
+        var labelLanguages = lang == "en" ? "en" : lang + ",en";
         if (imdbIds.Count == 0)
         {
             return [];
@@ -90,7 +99,7 @@ public sealed class WikidataAwardsClient
               UNION
               { ?film p:P1411 ?st . ?st ps:P1411 ?award . BIND(false AS ?won) }
               OPTIONAL { ?st pq:P585 ?date }
-              SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+              SERVICE wikibase:label { bd:serviceParam wikibase:language "{{labelLanguages}}". }
             }
             """;
         using var doc = await QueryAsync(query, cancellationToken).ConfigureAwait(false);

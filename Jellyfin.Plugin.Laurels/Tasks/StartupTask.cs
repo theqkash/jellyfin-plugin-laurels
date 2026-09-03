@@ -11,10 +11,12 @@ namespace Jellyfin.Plugin.Laurels.Tasks;
 public sealed class StartupTask : IScheduledTask, IConfigurableScheduledTask
 {
     private readonly ILogger<StartupTask> _logger;
+    private readonly Awards.AwardsService _awards;
 
-    public StartupTask(ILogger<StartupTask> logger)
+    public StartupTask(ILogger<StartupTask> logger, Awards.AwardsService awards)
     {
         _logger = logger;
+        _awards = awards;
     }
 
     public static int RegisteredSections { get; private set; }
@@ -41,9 +43,10 @@ public sealed class StartupTask : IScheduledTask, IConfigurableScheduledTask
     public Task ExecuteAsync(IProgress<double> progress, CancellationToken cancellationToken)
     {
         var cfg = Plugin.Instance?.Configuration;
+        _awards.ApplyLanguage();
         if (cfg?.EnableHomeSections == true)
         {
-            RegisteredSections = HomeSectionsBridge.RegisterAll(cfg.HomeSections, _logger);
+            RegisteredSections = HomeSectionsBridge.RegisterAll(Sections.SectionCatalog.ConfiguredKeys(), _logger);
         }
 
         progress.Report(100);

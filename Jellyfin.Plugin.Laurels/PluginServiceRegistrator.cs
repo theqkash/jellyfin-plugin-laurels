@@ -23,6 +23,7 @@ public sealed class PluginServiceRegistrator : IPluginServiceRegistrator
         serviceCollection.AddSingleton<WikidataAwardsClient>();
         serviceCollection.AddSingleton<AwardsIndex>();
         serviceCollection.AddSingleton<AwardsService>();
+        serviceCollection.AddSingleton<AwardLibraryService>();
         serviceCollection.AddSingleton<TmdbReviewsClient>();
         serviceCollection.AddHostedService<WebTransformHost>();
     }

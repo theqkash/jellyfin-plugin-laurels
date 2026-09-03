@@ -37,6 +37,10 @@ public sealed class TitleAwards
     [JsonPropertyName("fetchedUtc")]
     public DateTimeOffset FetchedUtc { get; set; }
 
+    /// <summary>Gets or sets the language the category labels were fetched in.</summary>
+    [JsonPropertyName("language")]
+    public string Language { get; set; } = "en";
+
     [JsonPropertyName("awards")]
     public List<AwardRecord> Awards { get; set; } = [];
 

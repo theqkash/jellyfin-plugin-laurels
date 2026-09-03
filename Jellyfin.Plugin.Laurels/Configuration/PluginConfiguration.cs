@@ -68,17 +68,46 @@ public class PluginConfiguration : BasePluginConfiguration
     public bool EnableAwards { get; set; } = true;
 
     /// <summary>Gets or sets the comma separated award family keys that are indexed and displayed.</summary>
-    public string AwardFamilies { get; set; } = "oscars,golden_globes,bafta,cannes,berlin,venice,emmys,cesar";
+    public string AwardFamilies { get; set; } = "oscars,golden_globes,bafta,cannes,berlin,venice,emmys,cesar,european_film_awards,polish_film_awards";
+
+    /// <summary>Gets or sets the language for award names and categories ("pl", "en"; empty = server UI language).</summary>
+    public string Language { get; set; } = string.Empty;
+
+    // --- Awards library: a dedicated "Awards" library holding one collection per award family ------
+
+    public bool EnableAwardLibrary { get; set; } = true;
+
+    /// <summary>Gets or sets the library name; empty = "Awards" / "Nagrody" depending on language.</summary>
+    public string AwardLibraryName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the collections kept in the awards library, e.g. "winners:oscars,nominees:oscars,winners:cannes".
+    /// Empty = winners of every enabled family plus Oscar nominees.
+    /// </summary>
+    public string AwardCollections { get; set; } = string.Empty;
 
     // --- Home screen sections (requires Home Screen Sections plugin) ----------------------------
 
     public bool EnableHomeSections { get; set; } = true;
 
+    /// <summary>
+    /// Gets or sets the home screen sections offered to users (they still pick which ones show up in "Modular Home").
+    /// Keys: winners:&lt;family&gt;, nominees:&lt;family&gt;, top:&lt;source&gt;, award_winners, award_nominees.
+    /// </summary>
     public string[] HomeSections { get; set; } =
     [
+        "winners:oscars",
+        "nominees:oscars",
+        "winners:golden_globes",
+        "winners:bafta",
+        "winners:cannes",
+        "winners:berlin",
+        "winners:venice",
+        "winners:european_film_awards",
+        "winners:polish_film_awards",
         "award_winners",
-        "award_nominees",
-        "top_filmweb",
-        "top_imdb",
+        "top:filmweb",
+        "top:imdb",
+        "top:metacritic",
     ];
 }

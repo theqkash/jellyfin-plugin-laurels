@@ -5,7 +5,7 @@
     <title>Laurels</title>
 </head>
 <body>
-<div id="LaurelsConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-checkbox,emby-select">
+<div id="LaurelsConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-checkbox,emby-select,emby-textarea">
     <div data-role="content">
         <div class="content-primary">
             <form id="LaurelsConfigForm">
@@ -80,12 +80,38 @@
                         <input is="emby-input" type="text" id="AwardFamilies" label="Award families (comma separated)">
                         <div class="fieldDescription">Known keys: oscars, golden_globes, bafta, cannes, berlin, venice, emmys, cesar, goya, european_film_awards, polish_film_awards, sundance, annie, saturn, razzies.</div>
                     </div>
+                    <div class="selectContainer">
+                        <select is="emby-select" id="Language" label="Language of award names and categories">
+                            <option value="">Server language</option>
+                            <option value="pl">Polski</option>
+                            <option value="en">English</option>
+                        </select>
+                        <div class="fieldDescription">Changing the language re-fetches category labels on the next awards refresh. <button is="emby-button" type="button" id="btnRefreshAwards" class="raised" style="margin-left:1em">Rebuild awards index now</button></div>
+                    </div>
+                </div>
+
+                <div class="verticalSection">
+                    <h3 class="sectionTitle">Awards library</h3>
+                    <div class="fieldDescription" style="margin-bottom:1em">A separate library of type "Collections" that holds one collection per award: Oscar winners, Oscar nominees, Cannes winners… It shows up next to your other libraries in every client. Members are synced after each awards refresh.</div>
+                    <div class="checkboxContainer"><label class="emby-checkbox-label"><input is="emby-checkbox" type="checkbox" id="EnableAwardLibrary"><span>Maintain the awards library</span></label></div>
+                    <div class="inputContainer">
+                        <input is="emby-input" type="text" id="AwardLibraryName" label="Library name (empty = Awards / Nagrody)">
+                    </div>
+                    <div class="inputContainer">
+                        <textarea is="emby-textarea" id="AwardCollections" label="Collections (one per line: winners:oscars, nominees:oscars, winners:cannes …)" rows="5" style="width:100%"></textarea>
+                        <div class="fieldDescription">Empty = winners of every enabled family plus Oscar nominees. <button is="emby-button" type="button" id="btnSyncLibrary" class="raised" style="margin-left:1em">Sync library now</button></div>
+                    </div>
+                    <div id="libraryState" class="fieldDescription"></div>
                 </div>
 
                 <div class="verticalSection">
                     <h3 class="sectionTitle">Home screen sections</h3>
-                    <div class="fieldDescription" style="margin-bottom:1em">Requires the <b>Home Screen Sections</b> plugin. Sections are computed on the fly from awards and ratings; no collections are created.</div>
+                    <div class="fieldDescription" style="margin-bottom:1em">Requires the <b>Home Screen Sections</b> plugin. Each user picks the rows they want under <i>Modular Home</i>. Rows are computed on the fly; when the awards library is on, the row title links to the matching collection.</div>
                     <div class="checkboxContainer"><label class="emby-checkbox-label"><input is="emby-checkbox" type="checkbox" id="EnableHomeSections"><span>Register home screen sections</span></label></div>
+                    <div class="inputContainer">
+                        <textarea is="emby-textarea" id="HomeSections" label="Sections offered (one per line)" rows="8" style="width:100%"></textarea>
+                        <div class="fieldDescription">Keys: winners:&lt;family&gt;, nominees:&lt;family&gt;, top:&lt;source&gt; (imdb, filmweb, metacritic, tomatoes…), award_winners, award_nominees. Takes effect after a restart.</div>
+                    </div>
                 </div>
 
                 <div>
@@ -99,9 +125,10 @@
         (function () {
             var pluginId = '9c1f6c3a-2b7e-4d5f-9a1e-6f0b2c4d8e71';
             var page = document.querySelector('#LaurelsConfigPage');
-            var textFields = ['MdbListApiKey', 'TmdbApiKey', 'RatingsPanelSources', 'AwardFamilies', 'CacheDays', 'MaxItemsPerRun'];
-            var selectFields = ['MovieCommunitySource', 'MovieCommunityFallbackSource', 'MovieCriticSource', 'MovieCriticFallbackSource', 'SeriesCommunitySource', 'SeriesCommunityFallbackSource', 'SeriesCriticSource', 'SeriesCriticFallbackSource'];
-            var boolFields = ['EnableFilmweb', 'OverwriteExistingRatings', 'EnableWebUi', 'ReplaceRatingIcons', 'ShowRatingsPanel', 'ShowAwardBadges', 'ShowReviewExcerpts', 'EnableAwards', 'EnableHomeSections'];
+            var textFields = ['MdbListApiKey', 'TmdbApiKey', 'RatingsPanelSources', 'AwardFamilies', 'CacheDays', 'MaxItemsPerRun', 'AwardLibraryName', 'AwardCollections'];
+            var listFields = ['HomeSections'];
+            var selectFields = ['Language', 'MovieCommunitySource', 'MovieCommunityFallbackSource', 'MovieCriticSource', 'MovieCriticFallbackSource', 'SeriesCommunitySource', 'SeriesCommunityFallbackSource', 'SeriesCriticSource', 'SeriesCriticFallbackSource'];
+            var boolFields = ['EnableFilmweb', 'OverwriteExistingRatings', 'EnableWebUi', 'ReplaceRatingIcons', 'ShowRatingsPanel', 'ShowAwardBadges', 'ShowReviewExcerpts', 'EnableAwards', 'EnableHomeSections', 'EnableAwardLibrary'];
 
             function fillSources(sources) {
                 page.querySelectorAll('select[data-sources]').forEach(function (select) {
@@ -127,12 +154,28 @@
                     fillSources(cs.sources || []);
                     return ApiClient.getPluginConfiguration(pluginId);
                 }).then(function (config) {
-                    textFields.forEach(function (f) { page.querySelector('#' + f).value = config[f] == null ? '' : config[f]; });
-                    selectFields.forEach(function (f) { page.querySelector('#' + f).value = (config[f] || 'none'); });
+                    textFields.forEach(function (f) { var v = config[f] == null ? '' : config[f]; if (f === 'AwardCollections') { v = String(v).split(',').map(function (x) { return x.trim(); }).filter(Boolean).join('\n'); } page.querySelector('#' + f).value = v; });
+                    selectFields.forEach(function (f) { page.querySelector('#' + f).value = (config[f] || (f === 'Language' ? '' : 'none')); });
+                    listFields.forEach(function (f) { page.querySelector('#' + f).value = (config[f] || []).join('\n'); });
                     boolFields.forEach(function (f) { page.querySelector('#' + f).checked = !!config[f]; });
                     Dashboard.hideLoadingMsg();
                     loadStatus();
+                    loadLibraryState();
                 }).catch(function () { Dashboard.hideLoadingMsg(); });
+            });
+
+            function loadLibraryState() {
+                ApiClient.ajax({ type: 'GET', url: ApiClient.getUrl('Laurels/Library'), dataType: 'json' }).then(function (rows) {
+                    page.querySelector('#libraryState').innerHTML = rows.length ? rows.map(function (r) { return (r.collectionId ? '✔ ' : '– ') + r.title + ' (' + r.itemCount + ')'; }).join('<br>') : 'No collections yet.';
+                }).catch(function () {});
+            }
+
+            page.querySelector('#btnSyncLibrary').addEventListener('click', function () {
+                ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('Laurels/Library/Sync') }).then(function () { Dashboard.alert('Library sync started; check back in a minute.'); setTimeout(loadLibraryState, 5000); });
+            });
+
+            page.querySelector('#btnRefreshAwards').addEventListener('click', function () {
+                ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('Laurels/Awards/Refresh?force=true') }).then(function () { Dashboard.alert('Awards refresh started in the background.'); });
             });
 
             page.querySelector('#btnTestMdbList').addEventListener('click', function () {
@@ -150,9 +193,10 @@
                 ApiClient.getPluginConfiguration(pluginId).then(function (config) {
                     textFields.forEach(function (f) {
                         var v = page.querySelector('#' + f).value;
-                        config[f] = (f === 'CacheDays' || f === 'MaxItemsPerRun') ? parseInt(v || '0', 10) : v;
+                        config[f] = (f === 'CacheDays' || f === 'MaxItemsPerRun') ? parseInt(v || '0', 10) : (f === 'AwardCollections' ? v.split('\n').map(function (x) { return x.trim(); }).filter(Boolean).join(',') : v);
                     });
                     selectFields.forEach(function (f) { config[f] = page.querySelector('#' + f).value; });
+                    listFields.forEach(function (f) { config[f] = page.querySelector('#' + f).value.split('\n').map(function (x) { return x.trim(); }).filter(Boolean); });
                     boolFields.forEach(function (f) { config[f] = page.querySelector('#' + f).checked; });
                     return ApiClient.updatePluginConfiguration(pluginId, config);
                 }).then(function (result) {

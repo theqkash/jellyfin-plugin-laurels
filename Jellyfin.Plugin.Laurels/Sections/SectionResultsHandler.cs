@@ -16,6 +16,18 @@ namespace Jellyfin.Plugin.Laurels.Sections;
 public sealed class SectionResultsHandler
 {
     private const int MaxItems = 16;
+
+    /// <summary>Year of the newest (winning) award of the family; falls back to the item's year when Wikidata has no date.</summary>
+    private int YearOf(TitleAwards t, string family, bool wonOnly)
+    {
+        var years = t.Awards.Where(a => (!wonOnly || a.Won) && (family == "*" || a.Family == family) && a.Year.HasValue).Select(a => a.Year!.Value).ToList();
+        if (years.Count > 0)
+        {
+            return years.Max();
+        }
+
+        return (_libraryManager.GetItemById(t.ItemId)?.ProductionYear ?? 0) + 1;
+    }
     private readonly ILibraryManager _libraryManager;
     private readonly IUserManager _userManager;
     private readonly IDtoService _dtoService;
@@ -47,11 +59,12 @@ public sealed class SectionResultsHandler
         IEnumerable<Guid> ids = definition.Kind switch
         {
             "winners" => _awards.Winners(definition.Argument == "*" ? enabledFamilies : [definition.Argument])
-                .OrderByDescending(t => t.Awards.Where(a => a.Won).Max(a => a.Year ?? 0))
-                .ThenByDescending(t => t.Awards.Count(a => a.Won))
+                .OrderByDescending(t => YearOf(t, definition.Argument, wonOnly: true))
+                .ThenByDescending(t => t.Awards.Count(a => a.Won && (definition.Argument == "*" || a.Family == definition.Argument)))
                 .Select(t => t.ItemId),
             "nominees" => _awards.Nominees(definition.Argument == "*" ? enabledFamilies : [definition.Argument])
-                .OrderByDescending(t => t.Awards.Max(a => a.Year ?? 0))
+                .OrderByDescending(t => YearOf(t, definition.Argument, wonOnly: false))
+                .ThenByDescending(t => t.Awards.Count(a => definition.Argument == "*" || a.Family == definition.Argument))
                 .Select(t => t.ItemId),
             "top" => _ratings.All
                 .Select(t => (t.ItemId, Rating: t.Find(definition.Argument)))

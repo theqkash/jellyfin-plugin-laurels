@@ -68,6 +68,13 @@ public sealed class LaurelsController : ControllerBase
             ShowReviewExcerpts = cfg.ShowReviewExcerpts,
             Sources = RatingSources.All.Select(s => new SourceDto { Key = s.Key, Name = s.DisplayName, Icon = s.Icon, Max = s.NativeMax }).ToList(),
             Version = Plugin.Instance?.Version.ToString() ?? "0",
+            Words = new Dictionary<string, string>
+            {
+                ["winner"] = AwardText.Winner,
+                ["nominee"] = AwardText.Nominee,
+                ["wins2"] = AwardText.Wins(2),
+                ["noms2"] = AwardText.Nominations(2),
+            },
         };
     }
 
@@ -137,12 +144,13 @@ public sealed class LaurelsController : ControllerBase
             {
                 FamilyKey = family.Key,
                 Family = family.ShortName,
-                FamilyName = family.Name,
+                FamilyName = AwardText.FamilyName(family),
                 Won = wins > 0,
                 Wins = wins,
                 Nominations = group.Count(),
                 Year = group.Max(a => a.Year),
-                Categories = group.OrderByDescending(a => a.Won).Select(a => (a.Won ? "Won: " : "Nominated: ") + a.Category + (a.Year.HasValue ? " (" + a.Year + ")" : string.Empty)).ToList(),
+                Categories = group.OrderByDescending(a => a.Won).ThenBy(a => AwardText.CategoryRank(AwardText.ShortCategory(a.Category))).Select(a => (a.Won ? "★ " : "○ ") + AwardText.ShortCategory(a.Category) + (a.Year.HasValue ? " (" + a.Year + ")" : string.Empty)).ToList(),
+                WonCategories = group.Where(a => a.Won).Select(a => AwardText.ShortCategory(a.Category)).Distinct().OrderBy(AwardText.CategoryRank).ToList(),
             });
         }
 
@@ -163,6 +171,92 @@ public sealed class LaurelsController : ControllerBase
 
         return await _reviews.GetAsync(item, cancellationToken).ConfigureAwait(false);
     }
+
+    /// <summary>Captions for home screen cards: what a title won / how it is rated, per section.</summary>
+    [HttpPost("Cards")]
+    [Authorize]
+    public ActionResult<CardsDto> GetCards([FromBody] CardsRequestDto body)
+    {
+        var dto = new CardsDto();
+        var definition = Sections.SectionCatalog.Resolve(body.Section ?? string.Empty);
+        foreach (var id in body.ItemIds.Distinct().Take(64))
+        {
+            string? caption = null;
+            string? tooltip = null;
+            if (definition is null || definition.Kind is "winners" or "nominees")
+            {
+                var entry = _awards.Index.Get(id);
+                var family = definition is null || definition.Argument == "*" ? null : definition.Argument;
+                var records = entry?.Awards.Where(a => family is null || a.Family == family).OrderByDescending(a => a.Won).ThenByDescending(a => a.Year).ToList() ?? [];
+                if (records.Count > 0)
+                {
+                    var wins = records.Where(a => a.Won).ToList();
+                    var shown = (wins.Count > 0 ? wins : records).Select(a => AwardText.ShortCategory(a.Category)).Distinct().OrderBy(AwardText.CategoryRank).Take(2).ToList();
+                    var fam = AwardFamilies.Get(records[0].Family);
+                    var year = records[0].Year;
+                    var head = (family is null && fam is not null ? AwardText.FamilyName(fam) + " " : string.Empty) + (year.HasValue ? year.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : string.Empty);
+                    var more = (wins.Count > 0 ? wins.Count : records.Count) - shown.Count;
+                    caption = (head.Length > 0 ? head + " · " : string.Empty) + string.Join(", ", shown) + (more > 0 ? " +" + more : string.Empty);
+                    tooltip = string.Join("\n", records.OrderByDescending(a => a.Won).ThenBy(a => AwardText.CategoryRank(AwardText.ShortCategory(a.Category))).Select(a => (a.Won ? "★ " : "○ ") + AwardText.ShortCategory(a.Category) + (a.Year.HasValue ? " (" + a.Year + ")" : string.Empty)));
+                }
+            }
+            else if (definition.Kind == "top")
+            {
+                var r = _ratings.GetCached(id)?.Find(definition.Argument);
+                var src = RatingSources.Get(definition.Argument);
+                if (r is not null && src is not null)
+                {
+                    var value = src.NativeMax == 100 ? Math.Round(r.Value ?? r.Score ?? 0) + "%" : (r.Value ?? 0).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture);
+                    caption = src.DisplayName + " " + value + (r.Votes.HasValue ? " (" + FormatVotes(r.Votes.Value) + ")" : string.Empty);
+                }
+            }
+
+            if (caption is not null)
+            {
+                dto.Items[id] = new CardDto { Caption = caption, Tooltip = tooltip };
+            }
+        }
+
+        return dto;
+    }
+
+    /// <summary>Sections Laurels registered, with the collection each one links to (if the awards library is on).</summary>
+    [HttpGet("Sections")]
+    [Authorize]
+    public ActionResult<List<SectionDto>> GetSections()
+    {
+        var keys = Sections.SectionCatalog.ConfiguredKeys();
+        var list = new List<SectionDto>();
+        foreach (var key in keys)
+        {
+            var def = Sections.SectionCatalog.Resolve(key);
+            if (def is null)
+            {
+                continue;
+            }
+
+            var box = def.Kind is "winners" or "nominees" && def.Argument != "*" ? _awards.Library.FindCollection(def.Kind + ":" + def.Argument) : null;
+            list.Add(new SectionDto { Id = Sections.SectionCatalog.SectionId(def.Key), Key = def.Key, Title = def.DisplayText, CollectionId = box?.Id });
+        }
+
+        return list;
+    }
+
+    /// <summary>Creates/syncs the awards library and its collections now (settings page button).</summary>
+    [HttpPost("Library/Sync")]
+    [Authorize(Policy = Policies.RequiresElevation)]
+    public IActionResult SyncLibrary()
+    {
+        _ = Task.Run(() => _awards.Library.SyncAsync(CancellationToken.None));
+        return NoContent();
+    }
+
+    [HttpGet("Library")]
+    [Authorize(Policy = Policies.RequiresElevation)]
+    public ActionResult<List<LibraryStateDto>> GetLibraryState() =>
+        _awards.Library.GetState().Select(s => new LibraryStateDto { Key = s.Key, Title = s.Title, CollectionId = s.CollectionId, ItemCount = s.ItemCount }).ToList();
+
+    private static string FormatVotes(int v) => v >= 1_000_000 ? (v / 1_000_000.0).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture) + "M" : v >= 1000 ? (v / 1000) + "k" : v.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
     /// <summary>Kicks off a full awards refresh in the background (settings page button).</summary>
     [HttpPost("Awards/Refresh")]
@@ -259,6 +353,9 @@ public sealed class LaurelsController : ControllerBase
 
         [JsonPropertyName("version")]
         public string Version { get; set; } = string.Empty;
+
+        [JsonPropertyName("words")]
+        public Dictionary<string, string> Words { get; set; } = new();
     }
 
     public sealed class SourceDto
@@ -373,6 +470,63 @@ public sealed class LaurelsController : ControllerBase
 
         [JsonPropertyName("categories")]
         public List<string> Categories { get; set; } = [];
+
+        [JsonPropertyName("wonCategories")]
+        public List<string> WonCategories { get; set; } = [];
+    }
+
+    public sealed class CardsRequestDto
+    {
+        [JsonPropertyName("section")]
+        public string? Section { get; set; }
+
+        [JsonPropertyName("itemIds")]
+        public List<Guid> ItemIds { get; set; } = [];
+    }
+
+    public sealed class CardsDto
+    {
+        [JsonPropertyName("items")]
+        public Dictionary<Guid, CardDto> Items { get; set; } = new();
+    }
+
+    public sealed class CardDto
+    {
+        [JsonPropertyName("caption")]
+        public string Caption { get; set; } = string.Empty;
+
+        [JsonPropertyName("tooltip")]
+        public string? Tooltip { get; set; }
+    }
+
+    public sealed class SectionDto
+    {
+        [JsonPropertyName("id")]
+        public string Id { get; set; } = string.Empty;
+
+        [JsonPropertyName("key")]
+        public string Key { get; set; } = string.Empty;
+
+        [JsonPropertyName("title")]
+        public string Title { get; set; } = string.Empty;
+
+        [JsonPropertyName("collectionId")]
+        public Guid? CollectionId { get; set; }
+    }
+
+    public sealed class LibraryStateDto
+    {
+        [JsonPropertyName("key")]
+        public string Key { get; set; } = string.Empty;
+
+        [JsonPropertyName("title")]
+        public string Title { get; set; } = string.Empty;
+
+        [JsonPropertyName("collectionId")]
+        public Guid? CollectionId { get; set; }
+
+        [JsonPropertyName("itemCount")]
+        public int ItemCount { get; set; }
     }
 
     public sealed class TestRequestDto

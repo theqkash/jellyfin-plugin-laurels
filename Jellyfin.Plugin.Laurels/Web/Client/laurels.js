@@ -43,7 +43,9 @@
             '.laurels-award b{font-weight:600}',
             '.laurels-reviews{margin:.6em 0;font-size:.95em;opacity:.9}',
             '.laurels-review{margin:.3em 0;padding-left:.7em;border-left:2px solid rgba(255,255,255,.25)}',
-            '.laurels-review .who{opacity:.65;font-size:.85em}'
+            '.laurels-review .who{opacity:.65;font-size:.85em}',
+            '.laurels-caption{white-space:normal!important;line-height:1.25;font-size:.85em;opacity:.85;max-height:2.6em;overflow:hidden}',
+            '.laurels-section .cardText-secondary.laurels-caption{color:#e1bd68}'
         ].join('');
         var style = document.createElement('style');
         style.id = STYLE_ID;
@@ -180,6 +182,7 @@
 
     function buildAwards(awards) {
         if (!awards || !awards.entries || !awards.entries.length) { return null; }
+        var words = (settings && settings.words) || {};
         var wrap = document.createElement('div');
         wrap.className = 'laurels-awards';
         awards.entries.forEach(function (a) {
@@ -192,12 +195,64 @@
             icon.alt = '';
             el.appendChild(icon);
             var text = document.createElement('span');
-            var count = a.won ? a.wins : a.nominations;
-            text.innerHTML = '<b>' + escapeHtml(a.family) + '</b> ' + (a.won ? (count > 1 ? count + ' wins' : 'winner') : (count > 1 ? count + ' nominations' : 'nominee')) + (a.year ? ' · ' + a.year : '');
+            var label = a.familyName || a.family;
+            var detail;
+            if (a.won) {
+                var cats = (a.wonCategories || []).slice(0, 2).join(', ');
+                var more = (a.wonCategories || []).length - 2;
+                detail = cats ? cats + (more > 0 ? ' +' + more : '') : (a.wins > 1 ? a.wins + ' × ' : '') + (words.winner || 'winner');
+            } else {
+                detail = (a.nominations > 1 ? a.nominations + ' × ' : '') + (words.nominee || 'nominee');
+            }
+            text.innerHTML = '<b>' + escapeHtml(label) + (a.year ? ' ' + a.year : '') + '</b> · ' + escapeHtml(detail);
             el.appendChild(text);
             wrap.appendChild(el);
         });
         return wrap;
+    }
+
+    // ---- Home screen: captions under the cards of our sections, and title links to the collections ----
+
+    var sectionsInfo = null;
+    function loadSections() {
+        if (sectionsInfo) { return Promise.resolve(sectionsInfo); }
+        return getJson('Laurels/Sections').then(function (list) { sectionsInfo = list || []; return sectionsInfo; });
+    }
+
+    function decorateHome() {
+        var container = document.querySelector('.homeSectionsContainer');
+        if (!container) { return; }
+        loadSections().then(function (sections) {
+            sections.forEach(function (sec) {
+                var el = container.querySelector('.verticalSection.' + sec.id);
+                if (!el || el.dataset.laurelsDone === '1') { return; }
+                var cards = el.querySelectorAll('.card[data-id]');
+                if (!cards.length) { return; }
+                el.dataset.laurelsDone = '1';
+                el.classList.add('laurels-section');
+                if (sec.collectionId) {
+                    var link = el.querySelector('a.sectionTitleTextButton');
+                    if (link) { link.href = '#/details?id=' + sec.collectionId; }
+                }
+                var ids = [];
+                cards.forEach(function (c) { ids.push(c.dataset.id); });
+                var client = apiClient();
+                client.ajax({ type: 'POST', url: client.getUrl('Laurels/Cards'), dataType: 'json', contentType: 'application/json', data: JSON.stringify({ section: sec.key, itemIds: ids }) }).then(function (res) {
+                    var items = (res && res.items) || {};
+                    cards.forEach(function (card) {
+                        var info = items[card.dataset.id] || items[(card.dataset.id || '').replace(/-/g, '')];
+                        if (!info) { return; }
+                        var texts = card.querySelectorAll('.cardText');
+                        var target = texts.length > 1 ? texts[texts.length - 1] : null;
+                        var cap = document.createElement('div');
+                        cap.className = 'cardText cardTextCentered cardText-secondary laurels-caption';
+                        cap.textContent = info.caption;
+                        cap.title = info.tooltip || info.caption;
+                        if (target) { target.replaceWith(cap); } else if (texts.length) { texts[0].parentNode.appendChild(cap); }
+                    });
+                }).catch(function (err) { log('cards failed', err); el.dataset.laurelsDone = ''; });
+            });
+        }).catch(function () { /* sections unavailable */ });
     }
 
     function buildReviews(reviews) {
@@ -291,9 +346,14 @@
         injectStyle();
         document.addEventListener('viewshow', function () { scheduleRender(200); }, true);
         window.addEventListener('hashchange', function () { scheduleRender(300); });
+        var homeTimer = null;
         var observer = new MutationObserver(function () {
             var page = activeDetailPage();
             if (page && itemIdFromHash() && !page.querySelector('.laurels-block')) { scheduleRender(150); }
+            if (document.querySelector('.homeSectionsContainer .card[data-id]')) {
+                clearTimeout(homeTimer);
+                homeTimer = setTimeout(decorateHome, 400);
+            }
         });
         observer.observe(document.body, { childList: true, subtree: true });
         scheduleRender(500);
