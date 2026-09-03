@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Laurels</title>
+</head>
+<body>
+<div id="LaurelsConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-checkbox,emby-select">
+    <div data-role="content">
+        <div class="content-primary">
+            <form id="LaurelsConfigForm">
+                <div class="verticalSection">
+                    <h2 class="sectionTitle">Laurels</h2>
+                    <p id="laurelsStatus" class="fieldDescription">Loading status…</p>
+                </div>
+
+                <div class="verticalSection">
+                    <h3 class="sectionTitle">Data sources</h3>
+                    <div class="inputContainer">
+                        <input is="emby-input" type="text" id="MdbListApiKey" label="MDBList API key" autocomplete="off">
+                        <div class="fieldDescription">Free key from mdblist.com → Preferences → API. Provides IMDb, TMDb, Trakt, Letterboxd, Rotten Tomatoes, Metacritic and RogerEbert ratings. <button is="emby-button" type="button" id="btnTestMdbList" class="raised button-submit" style="margin-left:1em">Test key</button> <span id="mdbTestResult"></span></div>
+                    </div>
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input is="emby-checkbox" type="checkbox" id="EnableFilmweb">
+                            <span>Fetch Filmweb ratings (users and critics)</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">No key needed. Titles are matched by original title and year; the Filmweb id is stored on the item and can be corrected in the metadata editor.</div>
+                    </div>
+                    <div class="inputContainer">
+                        <input is="emby-input" type="text" id="TmdbApiKey" label="TMDb API key (optional)" autocomplete="off">
+                        <div class="fieldDescription">Only needed for review excerpts.</div>
+                    </div>
+                </div>
+
+                <div class="verticalSection">
+                    <h3 class="sectionTitle">Ratings written into Jellyfin</h3>
+                    <div class="fieldDescription" style="margin-bottom:1em">Community rating is the star value (0–10); critic rating is the tomato/percentage value (0–100). The fallback is used when the primary source has no rating.</div>
+                    <div class="selectContainer"><select is="emby-select" id="MovieCommunitySource" label="Movies · community rating" data-sources></select></div>
+                    <div class="selectContainer"><select is="emby-select" id="MovieCommunityFallbackSource" label="Movies · community fallback" data-sources data-none></select></div>
+                    <div class="selectContainer"><select is="emby-select" id="MovieCriticSource" label="Movies · critic rating" data-sources></select></div>
+                    <div class="selectContainer"><select is="emby-select" id="MovieCriticFallbackSource" label="Movies · critic fallback" data-sources data-none></select></div>
+                    <div class="selectContainer"><select is="emby-select" id="SeriesCommunitySource" label="Series · community rating" data-sources></select></div>
+                    <div class="selectContainer"><select is="emby-select" id="SeriesCommunityFallbackSource" label="Series · community fallback" data-sources data-none></select></div>
+                    <div class="selectContainer"><select is="emby-select" id="SeriesCriticSource" label="Series · critic rating" data-sources></select></div>
+                    <div class="selectContainer"><select is="emby-select" id="SeriesCriticFallbackSource" label="Series · critic fallback" data-sources data-none></select></div>
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input is="emby-checkbox" type="checkbox" id="OverwriteExistingRatings">
+                            <span>Overwrite ratings that other metadata providers already filled in</span>
+                        </label>
+                    </div>
+                    <div class="inputContainer">
+                        <input is="emby-input" type="number" id="CacheDays" label="Refresh ratings after (days)" min="1" max="365">
+                    </div>
+                    <div class="inputContainer">
+                        <input is="emby-input" type="number" id="MaxItemsPerRun" label="Max titles fetched per scheduled run (0 = no limit)" min="0">
+                        <div class="fieldDescription">Useful with the free MDBList tier; the rest is picked up on the next run.</div>
+                    </div>
+                </div>
+
+                <div class="verticalSection">
+                    <h3 class="sectionTitle">Web interface</h3>
+                    <div class="fieldDescription" style="margin-bottom:1em">Requires the <b>File Transformation</b> plugin (repository: https://www.iamparadox.dev/jellyfin/plugins/manifest.json). Restart Jellyfin and reload the browser after changing these.</div>
+                    <div class="checkboxContainer"><label class="emby-checkbox-label"><input is="emby-checkbox" type="checkbox" id="EnableWebUi"><span>Enable web interface additions</span></label></div>
+                    <div class="checkboxContainer"><label class="emby-checkbox-label"><input is="emby-checkbox" type="checkbox" id="ReplaceRatingIcons"><span>Replace the star / tomato icons with the logo of the source actually used</span></label></div>
+                    <div class="checkboxContainer"><label class="emby-checkbox-label"><input is="emby-checkbox" type="checkbox" id="ShowRatingsPanel"><span>Show a strip with all ratings on the detail page</span></label></div>
+                    <div class="inputContainer">
+                        <input is="emby-input" type="text" id="RatingsPanelSources" label="Sources in the strip, in order (comma separated; empty = all)">
+                        <div class="fieldDescription" id="sourceKeys"></div>
+                    </div>
+                    <div class="checkboxContainer"><label class="emby-checkbox-label"><input is="emby-checkbox" type="checkbox" id="ShowAwardBadges"><span>Show award badges on the detail page</span></label></div>
+                    <div class="checkboxContainer"><label class="emby-checkbox-label"><input is="emby-checkbox" type="checkbox" id="ShowReviewExcerpts"><span>Show review excerpts (needs TMDb key)</span></label></div>
+                </div>
+
+                <div class="verticalSection">
+                    <h3 class="sectionTitle">Awards</h3>
+                    <div class="checkboxContainer"><label class="emby-checkbox-label"><input is="emby-checkbox" type="checkbox" id="EnableAwards"><span>Index film awards from Wikidata (no key needed)</span></label></div>
+                    <div class="inputContainer">
+                        <input is="emby-input" type="text" id="AwardFamilies" label="Award families (comma separated)">
+                        <div class="fieldDescription">Known keys: oscars, golden_globes, bafta, cannes, berlin, venice, emmys, cesar, goya, european_film_awards, polish_film_awards, sundance, annie, saturn, razzies.</div>
+                    </div>
+                </div>
+
+                <div class="verticalSection">
+                    <h3 class="sectionTitle">Home screen sections</h3>
+                    <div class="fieldDescription" style="margin-bottom:1em">Requires the <b>Home Screen Sections</b> plugin. Sections are computed on the fly from awards and ratings; no collections are created.</div>
+                    <div class="checkboxContainer"><label class="emby-checkbox-label"><input is="emby-checkbox" type="checkbox" id="EnableHomeSections"><span>Register home screen sections</span></label></div>
+                </div>
+
+                <div>
+                    <button is="emby-button" type="submit" class="raised button-submit block"><span>Save</span></button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        (function () {
+            var pluginId = '9c1f6c3a-2b7e-4d5f-9a1e-6f0b2c4d8e71';
+            var page = document.querySelector('#LaurelsConfigPage');
+            var textFields = ['MdbListApiKey', 'TmdbApiKey', 'RatingsPanelSources', 'AwardFamilies', 'CacheDays', 'MaxItemsPerRun'];
+            var selectFields = ['MovieCommunitySource', 'MovieCommunityFallbackSource', 'MovieCriticSource', 'MovieCriticFallbackSource', 'SeriesCommunitySource', 'SeriesCommunityFallbackSource', 'SeriesCriticSource', 'SeriesCriticFallbackSource'];
+            var boolFields = ['EnableFilmweb', 'OverwriteExistingRatings', 'EnableWebUi', 'ReplaceRatingIcons', 'ShowRatingsPanel', 'ShowAwardBadges', 'ShowReviewExcerpts', 'EnableAwards', 'EnableHomeSections'];
+
+            function fillSources(sources) {
+                page.querySelectorAll('select[data-sources]').forEach(function (select) {
+                    var html = select.hasAttribute('data-none') ? '<option value="none">(none)</option>' : '';
+                    sources.forEach(function (s) { html += '<option value="' + s.key + '">' + s.name + '</option>'; });
+                    select.innerHTML = html;
+                });
+                page.querySelector('#sourceKeys').textContent = 'Keys: ' + sources.map(function (s) { return s.key; }).join(', ');
+            }
+
+            function loadStatus() {
+                ApiClient.ajax({ type: 'GET', url: ApiClient.getUrl('Laurels/Status'), dataType: 'json' }).then(function (s) {
+                    var parts = ['Version ' + s.version];
+                    parts.push(s.fileTransformationInstalled ? (s.webUiActive ? 'web interface hook active' : 'File Transformation found, hook inactive (restart Jellyfin)') : 'File Transformation plugin not installed – web interface additions are off');
+                    parts.push(s.cachedItems + ' titles cached');
+                    page.querySelector('#laurelsStatus').textContent = parts.join(' · ');
+                }).catch(function () { page.querySelector('#laurelsStatus').textContent = 'Status unavailable'; });
+            }
+
+            page.addEventListener('pageshow', function () {
+                Dashboard.showLoadingMsg();
+                ApiClient.ajax({ type: 'GET', url: ApiClient.getUrl('Laurels/ClientSettings'), dataType: 'json' }).then(function (cs) {
+                    fillSources(cs.sources || []);
+                    return ApiClient.getPluginConfiguration(pluginId);
+                }).then(function (config) {
+                    textFields.forEach(function (f) { page.querySelector('#' + f).value = config[f] == null ? '' : config[f]; });
+                    selectFields.forEach(function (f) { page.querySelector('#' + f).value = (config[f] || 'none'); });
+                    boolFields.forEach(function (f) { page.querySelector('#' + f).checked = !!config[f]; });
+                    Dashboard.hideLoadingMsg();
+                    loadStatus();
+                }).catch(function () { Dashboard.hideLoadingMsg(); });
+            });
+
+            page.querySelector('#btnTestMdbList').addEventListener('click', function () {
+                var out = page.querySelector('#mdbTestResult');
+                out.textContent = 'testing…';
+                ApiClient.ajax({
+                    type: 'POST', url: ApiClient.getUrl('Laurels/TestMdbList'), dataType: 'json', contentType: 'application/json',
+                    data: JSON.stringify({ apiKey: page.querySelector('#MdbListApiKey').value })
+                }).then(function (r) { out.textContent = r.message; }).catch(function () { out.textContent = 'request failed'; });
+            });
+
+            page.querySelector('#LaurelsConfigForm').addEventListener('submit', function (e) {
+                e.preventDefault();
+                Dashboard.showLoadingMsg();
+                ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                    textFields.forEach(function (f) {
+                        var v = page.querySelector('#' + f).value;
+                        config[f] = (f === 'CacheDays' || f === 'MaxItemsPerRun') ? parseInt(v || '0', 10) : v;
+                    });
+                    selectFields.forEach(function (f) { config[f] = page.querySelector('#' + f).value; });
+                    boolFields.forEach(function (f) { config[f] = page.querySelector('#' + f).checked; });
+                    return ApiClient.updatePluginConfiguration(pluginId, config);
+                }).then(function (result) {
+                    Dashboard.processPluginConfigurationUpdateResult(result);
+                    loadStatus();
+                });
+                return false;
+            });
+        })();
+    </script>
+</div>
+</body>
+</html>
