@@ -104,10 +104,11 @@
             var r = byKey[key];
             if (!r) { return; }
             var src = sourcesByKey[key] || { name: key, icon: null };
-            var el = document.createElement(r.url ? 'a' : 'span');
+            var href = (r.url && /^https?:\/\//i.test(r.url)) ? r.url : null;
+            var el = document.createElement(href ? 'a' : 'span');
             el.className = 'laurels-rating';
             el.title = src.name + (r.votes ? ' · ' + r.votes.toLocaleString() + ' votes' : '');
-            if (r.url) { el.href = r.url; el.target = '_blank'; el.rel = 'noopener noreferrer'; }
+            if (href) { el.href = href; el.target = '_blank'; el.rel = 'noopener noreferrer'; }
             if (src.icon) {
                 var img = document.createElement('img');
                 img.src = assetUrl(src.icon);
