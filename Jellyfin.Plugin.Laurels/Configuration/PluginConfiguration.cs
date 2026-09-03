@@ -68,7 +68,7 @@ public class PluginConfiguration : BasePluginConfiguration
     public bool EnableAwards { get; set; } = true;
 
     /// <summary>Gets or sets the comma separated award family keys that are indexed and displayed.</summary>
-    public string AwardFamilies { get; set; } = "oscars,golden_globes,bafta,cannes,berlin,venice,emmys,cesar,european_film_awards,polish_film_awards";
+    public string AwardFamilies { get; set; } = "oscars,golden_globes,bafta,cannes,berlin,venice,emmys,cesar,european_film_awards,polish_film_awards,goya,sundance,annie,saturn,razzies,critics_choice,sag,independent_spirit,toronto,gdynia,david,german_film_award,japan_academy,sitges,locarno";
 
     /// <summary>Gets or sets the language for award names and categories ("pl", "en"; empty = server UI language).</summary>
     public string Language { get; set; } = string.Empty;
@@ -105,6 +105,13 @@ public class PluginConfiguration : BasePluginConfiguration
         "winners:venice",
         "winners:european_film_awards",
         "winners:polish_film_awards",
+        "winners:gdynia",
+        "winners:razzies",
+        "winners:sundance",
+        "winners:saturn",
+        "winners:annie",
+        "winners:critics_choice",
+        "winners:sag",
         "award_winners",
         "top:filmweb",
         "top:imdb",

@@ -31,6 +31,16 @@ public static partial class AwardText
         "annie" => "Annie",
         "saturn" => "Saturn",
         "razzies" => "Złote Maliny",
+        "critics_choice" => "Critics' Choice",
+        "sag" => "Nagrody Gildii Aktorów (SAG)",
+        "independent_spirit" => "Independent Spirit",
+        "toronto" => "Toronto (TIFF)",
+        "gdynia" => "Gdynia",
+        "david" => "David di Donatello",
+        "german_film_award" => "Niemiecka Nagroda Filmowa (Lola)",
+        "japan_academy" => "Japońska Nagroda Akademii",
+        "sitges" => "Sitges",
+        "locarno" => "Locarno",
         _ => f.Name,
     } : f.Name;
 
@@ -52,6 +62,16 @@ public static partial class AwardText
         "annie" => "Zdobywcy nagród Annie",
         "saturn" => "Zdobywcy nagród Saturn",
         "razzies" => "Zdobywcy Złotych Malin",
+        "critics_choice" => "Zdobywcy Critics' Choice",
+        "sag" => "Zdobywcy nagród Gildii Aktorów",
+        "independent_spirit" => "Zdobywcy Independent Spirit",
+        "toronto" => "Nagroda Publiczności w Toronto",
+        "gdynia" => "Laureaci festiwalu w Gdyni",
+        "david" => "Zdobywcy nagród David di Donatello",
+        "german_film_award" => "Zdobywcy Niemieckiej Nagrody Filmowej",
+        "japan_academy" => "Zdobywcy Japońskiej Nagrody Akademii",
+        "sitges" => "Laureaci festiwalu w Sitges",
+        "locarno" => "Laureaci festiwalu w Locarno",
         _ => "Laureaci: " + FamilyName(f),
     } : f.IsFestival ? f.Name + " winners" : f.Name + " winners";
 
@@ -70,6 +90,13 @@ public static partial class AwardText
         "european_film_awards" => "Nominowani do Europejskich Nagród Filmowych",
         "polish_film_awards" => "Nominowani do Orłów",
         "razzies" => "Nominowani do Złotych Malin",
+        "critics_choice" => "Nominowani do Critics' Choice",
+        "sag" => "Nominowani do nagród Gildii Aktorów",
+        "independent_spirit" => "Nominowani do Independent Spirit",
+        "gdynia" => "Filmy z konkursu w Gdyni",
+        "david" => "Nominowani do David di Donatello",
+        "german_film_award" => "Nominowani do Niemieckiej Nagrody Filmowej",
+        "japan_academy" => "Nominowani do Japońskiej Nagrody Akademii",
         _ => "Nominowani: " + FamilyName(f),
     } : f.Name + " nominees";
 

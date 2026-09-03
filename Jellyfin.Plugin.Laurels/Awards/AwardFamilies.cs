@@ -26,6 +26,16 @@ public static class AwardFamilies
         new("annie", "Annie Awards", "Annie", ["Q566905"], ["Annie Award", "Nagroda Annie"], false),
         new("saturn", "Saturn Awards", "Saturn", ["Q105447"], ["Saturn Award", "Nagroda Saturn"], false),
         new("razzies", "Golden Raspberry Awards", "Razzie", ["Q40237"], ["Golden Raspberry Award", "Razzie Award", "Złota Malina"], false),
+        new("critics_choice", "Critics' Choice Awards", "Critics' Choice", ["Q7585305"], ["Critics' Choice", "Critics Choice"], false),
+        new("sag", "Screen Actors Guild Awards", "SAG", ["Q268200"], ["Screen Actors Guild Award", "Actor Award"], false),
+        new("independent_spirit", "Independent Spirit Awards", "Spirit", ["Q311836"], ["Independent Spirit Award"], false),
+        new("toronto", "Toronto International Film Festival", "TIFF", ["Q39087364"], ["Toronto International Film Festival People's Choice"], true),
+        new("gdynia", "Gdynia Film Festival", "Gdynia", ["Q1463060", "Q28056433"], ["Gdynia Film Festival", "Festiwal Polskich Filmów Fabularnych", "Złote Lwy"], true),
+        new("david", "David di Donatello", "David", ["Q31579"], ["David di Donatello"], false),
+        new("german_film_award", "German Film Awards (Lola)", "Lola", ["Q708731"], ["German Film Award", "Deutscher Filmpreis"], false),
+        new("japan_academy", "Japan Academy Film Prize", "Japan Academy", ["Q194258"], ["Japan Academy Prize", "Japan Academy Film Prize"], false),
+        new("sitges", "Sitges Film Festival", "Sitges", ["Q975945"], ["Sitges Film Festival"], true),
+        new("locarno", "Locarno Film Festival", "Locarno", ["Q502053"], ["Locarno", "Golden Leopard", "Złoty Lampart"], true),
     ];
 
     public static AwardFamily? Get(string? key) =>
