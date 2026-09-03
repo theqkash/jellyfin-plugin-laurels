@@ -32,9 +32,12 @@ public sealed class WebTransformHost : IHostedService
         }
 
         var handler = typeof(IndexHtmlTransform).GetMethod(nameof(IndexHtmlTransform.TransformAsync), BindingFlags.Public | BindingFlags.Static)!;
-        // The pattern is a regex matched against the requested path; an unanchored "index.html" would also
-        // match e.g. "user-home-index-html.<hash>.chunk.js" and corrupt it.
-        _registered = FileTransformationBridge.Register(TransformationId, @"(^|/)index\.html$", handler, _serviceProvider, _logger);
+        // File Transformation runs exactly one pipeline per request: the one registered under the exact
+        // path key if there is one, otherwise the first regex key that matches. Other plugins register
+        // "index.html" as an exact key, so we must use the same key to be part of that pipeline. The key
+        // is also used as a regex, so "user-home-index-html.<hash>.chunk.js" reaches us too; IndexHtmlTransform
+        // leaves anything without a closing body tag untouched.
+        _registered = FileTransformationBridge.Register(TransformationId, "index.html", handler, _serviceProvider, _logger);
         IsActive = _registered;
         return Task.CompletedTask;
     }
