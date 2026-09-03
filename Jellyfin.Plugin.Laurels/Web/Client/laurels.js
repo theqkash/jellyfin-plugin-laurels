@@ -27,14 +27,15 @@
     function injectStyle() {
         if (document.getElementById(STYLE_ID)) { return; }
         var css = [
-            '.laurels-strip{display:flex;flex-wrap:wrap;align-items:center;gap:.9em;margin:.35em 0 .1em 0;}',
+            '.laurels-block{display:block;position:relative;width:100%;clear:both;margin:.5em 0 .2em 0;grid-column:1 / -1;}',
+            '.laurels-strip{display:flex;flex-wrap:wrap;align-items:center;gap:.9em;margin:.3em 0 0 0;}',
             '.laurels-rating{display:inline-flex;align-items:center;gap:.35em;color:inherit;text-decoration:none;white-space:nowrap;opacity:.95}',
             '.laurels-rating:hover{opacity:1;text-decoration:none}',
             '.laurels-rating img{height:1.35em;width:auto;max-width:2.6em;display:block}',
             '.laurels-rating .laurels-votes{font-size:.75em;opacity:.65;margin-left:.15em}',
             '.laurels-flag{font-size:.7em;padding:.1em .4em;border-radius:.6em;background:rgba(255,255,255,.14);margin-left:.2em}',
             '.laurels-src-icon{height:1.25em;width:auto;vertical-align:middle;margin-right:.3em}',
-            '.laurels-awards{display:flex;flex-wrap:wrap;gap:.6em;margin:.3em 0}',
+            '.laurels-awards{display:flex;flex-wrap:wrap;gap:.6em;margin:.2em 0 .4em 0}',
             '.laurels-award{display:inline-flex;align-items:center;gap:.4em;padding:.15em .6em;border-radius:1em;background:rgba(184,134,11,.22);border:1px solid rgba(218,165,32,.5);font-size:.9em;white-space:nowrap}',
             '.laurels-award.nominee{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.25)}',
             '.laurels-award b{font-weight:600}',
@@ -80,11 +81,15 @@
     }
 
     function formatValue(r) {
-        var src = sourcesByKey[r.source] || { max: 10 };
-        if (r.value == null) { return r.score != null ? String(r.score) : '?'; }
-        if (src.max === 100) { return Math.round(r.value) + '%'; }
-        if (src.max === 5 || src.max === 4) { return (Math.round(r.value * 10) / 10) + '/' + src.max; }
-        return (Math.round(r.value * 10) / 10).toFixed(1);
+        var key = r.source;
+        var v = r.value;
+        if (v == null) { return r.score != null ? String(r.score) : '?'; }
+        if (key === 'tomatoes' || key === 'audience' || key === 'trakt') { return Math.round(v) + '%'; }
+        if (key === 'metacritic') { return String(Math.round(v)); }
+        if ((key === 'tmdb' || key === 'metacritic_user') && v > 10) { v = v / 10; }
+        if (key === 'letterboxd') { return (Math.round(v * 10) / 10).toFixed(1) + '/5'; }
+        if (key === 'rogerebert') { return (Math.round(v * 10) / 10).toFixed(1) + '/4'; }
+        return (Math.round(v * 10) / 10).toFixed(1);
     }
 
     function formatVotes(v) {
@@ -211,7 +216,17 @@
     }
 
     function clear(page) {
-        page.querySelectorAll('.laurels-strip, .laurels-awards, .laurels-reviews').forEach(function (n) { n.remove(); });
+        page.querySelectorAll('.laurels-block, .laurels-reviews').forEach(function (n) { n.remove(); });
+    }
+
+    function getBlock(page, misc) {
+        var block = page.querySelector('.laurels-block');
+        if (!block) {
+            block = document.createElement('div');
+            block.className = 'laurels-block';
+            misc.parentNode.insertBefore(block, misc.nextSibling);
+        }
+        return block;
     }
 
     function render() {
@@ -220,7 +235,7 @@
         if (!page || !itemId) { return; }
         var misc = page.querySelector('.itemMiscInfo-primary');
         if (!misc) { scheduleRender(250); return; }
-        if (page.dataset.laurelsItem === itemId && page.querySelector('.laurels-strip, .laurels-awards')) { return; }
+        if (page.dataset.laurelsItem === itemId && page.querySelector('.laurels-block')) { return; }
         page.dataset.laurelsItem = itemId;
         currentItemId = itemId;
         clear(page);
@@ -230,19 +245,19 @@
         }).then(function (data) {
             if (currentItemId !== itemId || !data) { return; }
             injectStyle();
-            var anchor = misc.parentNode; // .infoWrapper
+            var block = getBlock(page, misc);
             if (data.found) {
                 replaceIcons(page, data);
                 if (settings.showRatingsPanel) {
                     var strip = buildStrip(data);
-                    if (strip) { anchor.insertBefore(strip, misc.nextSibling); }
+                    if (strip) { block.appendChild(strip); }
                 }
             }
             if (settings.showAwardBadges) {
                 getJson('Laurels/Awards/' + itemId).then(function (awards) {
                     if (currentItemId !== itemId) { return; }
                     var el = buildAwards(awards);
-                    if (el) { anchor.insertBefore(el, misc.nextSibling); }
+                    if (el) { block.insertBefore(el, block.firstChild); }
                 }).catch(function () { /* awards index not available */ });
             }
             if (settings.showReviewExcerpts) {
@@ -267,7 +282,7 @@
         window.addEventListener('hashchange', function () { scheduleRender(300); });
         var observer = new MutationObserver(function () {
             var page = activeDetailPage();
-            if (page && itemIdFromHash() && !page.querySelector('.laurels-strip')) { scheduleRender(150); }
+            if (page && itemIdFromHash() && !page.querySelector('.laurels-block')) { scheduleRender(150); }
         });
         observer.observe(document.body, { childList: true, subtree: true });
         scheduleRender(500);

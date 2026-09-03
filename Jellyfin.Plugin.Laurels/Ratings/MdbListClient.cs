@@ -163,6 +163,16 @@ public sealed class MdbListClient
 
                 var value = ReadDouble(r, "value");
                 var score = ReadDouble(r, "score");
+                if (source == RatingSources.Tmdb && value is > 10)
+                {
+                    // MDBList reports TMDb as a percentage; the site itself shows 0-10.
+                    score ??= value;
+                    value = Math.Round(value.Value / 10.0, 1);
+                }
+                else if (source == RatingSources.MetacriticUser && value is > 10)
+                {
+                    value = Math.Round(value.Value / 10.0, 1);
+                }
                 var votes = ReadDouble(r, "votes");
                 if (value is null && score is null)
                 {
