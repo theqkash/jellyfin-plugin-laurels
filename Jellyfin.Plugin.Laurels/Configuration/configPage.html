@@ -143,7 +143,8 @@
                 ApiClient.ajax({ type: 'GET', url: ApiClient.getUrl('Laurels/Status'), dataType: 'json' }).then(function (s) {
                     var parts = ['Version ' + s.version];
                     parts.push(s.fileTransformationInstalled ? (s.webUiActive ? 'web interface hook active' : 'File Transformation found, hook inactive (restart Jellyfin)') : 'File Transformation plugin not installed – web interface additions are off');
-                    parts.push(s.cachedItems + ' titles cached');
+                    parts.push(s.cachedItems + ' titles cached' + (s.cachedItemsMissingMdbList ? ' (' + s.cachedItemsMissingMdbList + ' still waiting for MDBList)' : ''));
+                    if (s.mdbListExhaustedUntilUtc) { parts.push('MDBList daily quota used up, resumes ' + new Date(s.mdbListExhaustedUntilUtc).toLocaleString()); }
                     page.querySelector('#laurelsStatus').textContent = parts.join(' · ');
                 }).catch(function () { page.querySelector('#laurelsStatus').textContent = 'Status unavailable'; });
             }

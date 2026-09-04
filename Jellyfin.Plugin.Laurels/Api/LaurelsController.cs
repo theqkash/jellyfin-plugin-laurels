@@ -281,6 +281,8 @@ public sealed class LaurelsController : ControllerBase
             IndexedAwards = _awards.Index.Count,
             HomeScreenSectionsInstalled = Sections.HomeSectionsBridge.IsInstalled(),
             RegisteredSections = Tasks.StartupTask.RegisteredSections,
+            MdbListExhaustedUntilUtc = RatingsService.MdbListExhaustedUntilUtc,
+            CachedItemsMissingMdbList = _cache.All.Count(t => t.FailedSources.Contains("mdblist")),
             Version = Plugin.Instance?.Version.ToString() ?? "0",
         };
     }
@@ -428,6 +430,12 @@ public sealed class LaurelsController : ControllerBase
 
         [JsonPropertyName("registeredSections")]
         public int RegisteredSections { get; set; }
+
+        [JsonPropertyName("mdbListExhaustedUntilUtc")]
+        public DateTimeOffset? MdbListExhaustedUntilUtc { get; set; }
+
+        [JsonPropertyName("cachedItemsMissingMdbList")]
+        public int CachedItemsMissingMdbList { get; set; }
 
         [JsonPropertyName("version")]
         public string Version { get; set; } = string.Empty;

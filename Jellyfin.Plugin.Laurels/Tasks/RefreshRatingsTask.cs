@@ -69,7 +69,7 @@ public sealed class RefreshRatingsTask : IScheduledTask, IConfigurableScheduledT
             }
 
             counts[outcome] = counts.GetValueOrDefault(outcome) + 1;
-            if (outcome is RefreshOutcome.RateLimited or RefreshOutcome.InvalidKey)
+            if (outcome is RefreshOutcome.InvalidKey)
             {
                 _logger.LogWarning("Laurels: stopping run early ({Outcome}).", outcome);
                 break;

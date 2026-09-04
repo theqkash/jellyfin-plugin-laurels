@@ -72,7 +72,8 @@ public sealed class RatingsService
 
         var cfg = Config;
         var existing = _cache.Get(item.Id);
-        if (!force && existing is not null && existing.FetchedUtc.AddDays(Math.Max(1, cfg.CacheDays)) > DateTimeOffset.UtcNow)
+        var ttl = existing is not null && existing.FailedSources.Count > 0 ? TimeSpan.FromHours(12) : TimeSpan.FromDays(Math.Max(1, cfg.CacheDays));
+        if (!force && existing is not null && existing.FetchedUtc + ttl > DateTimeOffset.UtcNow)
         {
             // Data is fresh; still make sure the Jellyfin fields reflect current settings.
             var applied = ApplyToItem(item, existing, cfg);
@@ -107,22 +108,33 @@ public sealed class RatingsService
             result.Ids["imdb"] = imdbId;
         }
 
-        // 1. MDBList: one call, many ratings.
+        // 1. MDBList: one call, many ratings. When the daily quota is used up we remember that until
+        //    midnight UTC (MDBList resets then), skip MDBList for the remaining titles and still fetch
+        //    Filmweb; the titles are marked so the next run picks MDBList up again.
+        var mdbLimited = false;
         if (!string.IsNullOrWhiteSpace(cfg.MdbListApiKey))
         {
-            var (provider, id) = !string.IsNullOrWhiteSpace(tmdbId) ? ("tmdb", tmdbId) : ("imdb", imdbId!);
-            var mdb = await _mdbList.GetAsync(provider, mediaType, id, cfg.MdbListApiKey, cancellationToken).ConfigureAwait(false);
-            if (mdb.RateLimited)
+            if (_mdbListExhaustedUntilUtc > DateTimeOffset.UtcNow)
             {
-                return RefreshOutcome.RateLimited;
+                mdbLimited = true;
+                result.FailedSources.Add("mdblist");
             }
-
-            if (mdb.InvalidKey)
+            else
             {
-                return RefreshOutcome.InvalidKey;
-            }
-
-            if (mdb.Success)
+                var (provider, id) = !string.IsNullOrWhiteSpace(tmdbId) ? ("tmdb", tmdbId) : ("imdb", imdbId!);
+                var mdb = await _mdbList.GetAsync(provider, mediaType, id, cfg.MdbListApiKey, cancellationToken).ConfigureAwait(false);
+                if (mdb.RateLimited)
+                {
+                    _mdbListExhaustedUntilUtc = DateTimeOffset.UtcNow.Date.AddDays(1);
+                    _logger.LogWarning("Laurels: MDBList daily quota used up; continuing with Filmweb only until {Reset:u}.", _mdbListExhaustedUntilUtc);
+                    mdbLimited = true;
+                    result.FailedSources.Add("mdblist");
+                }
+                else if (mdb.InvalidKey)
+                {
+                    return RefreshOutcome.InvalidKey;
+                }
+                else if (mdb.Success)
             {
                 result.Ratings.RemoveAll(r => !IsFilmwebSource(r.Source));
                 foreach (var entry in mdb.Ratings)
@@ -137,11 +149,14 @@ public sealed class RatingsService
 
                 result.Flags = mdb.Flags;
             }
-            else
-            {
-                result.FailedSources.Add("mdblist");
-                if (!mdb.NotFound)
+                else if (mdb.NotFound)
                 {
+                    // Nothing to retry; MDBList simply does not know the title.
+                    result.Ratings.RemoveAll(r => !IsFilmwebSource(r.Source));
+                }
+                else
+                {
+                    result.FailedSources.Add("mdblist");
                     _logger.LogDebug("Laurels: MDBList lookup failed for {Name}: {Error}", item.Name, mdb.Error);
                 }
             }
@@ -163,8 +178,18 @@ public sealed class RatingsService
             return RefreshOutcome.Updated;
         }
 
+        if (mdbLimited)
+        {
+            return RefreshOutcome.RateLimited;
+        }
+
         return result.Ratings.Count == 0 ? RefreshOutcome.NotFound : RefreshOutcome.Unchanged;
     }
+
+    private static DateTimeOffset _mdbListExhaustedUntilUtc = DateTimeOffset.MinValue;
+
+    /// <summary>Gets when MDBList becomes usable again, or null when it is not rate limited.</summary>
+    public static DateTimeOffset? MdbListExhaustedUntilUtc => _mdbListExhaustedUntilUtc > DateTimeOffset.UtcNow ? _mdbListExhaustedUntilUtc : null;
 
     private async Task RefreshFilmwebAsync(BaseItem item, TitleRatings result, bool isSeries, CancellationToken cancellationToken)
     {
