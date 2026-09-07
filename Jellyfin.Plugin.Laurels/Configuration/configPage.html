@@ -51,7 +51,8 @@
                         </label>
                     </div>
                     <div class="inputContainer">
-                        <input is="emby-input" type="number" id="CacheDays" label="Refresh ratings after (days)" min="1" max="365">
+                        <input is="emby-input" type="number" id="CacheDays" label="Refresh ratings after (days)" min="1" max="3650">
+                        <div class="fieldDescription">Titles with a missing source are retried after 12 hours regardless.</div>
                     </div>
                     <div class="inputContainer">
                         <input is="emby-input" type="number" id="MaxItemsPerRun" label="Max titles fetched per scheduled run (0 = no limit)" min="0">
@@ -79,6 +80,9 @@
                     <div class="inputContainer">
                         <input is="emby-input" type="text" id="AwardFamilies" label="Award families (comma separated)">
                         <div class="fieldDescription">Known keys: oscars, golden_globes, bafta, cannes, berlin, venice, emmys, cesar, goya, european_film_awards, polish_film_awards, sundance, annie, saturn, razzies.</div>
+                    </div>
+                    <div class="inputContainer">
+                        <input is="emby-input" type="number" id="AwardCacheDays" label="Refresh awards after (days)" min="1" max="3650">
                     </div>
                     <div class="selectContainer">
                         <select is="emby-select" id="Language" label="Language of award names and categories">
@@ -125,7 +129,7 @@
         (function () {
             var pluginId = '9c1f6c3a-2b7e-4d5f-9a1e-6f0b2c4d8e71';
             var page = document.querySelector('#LaurelsConfigPage');
-            var textFields = ['MdbListApiKey', 'TmdbApiKey', 'RatingsPanelSources', 'AwardFamilies', 'CacheDays', 'MaxItemsPerRun', 'AwardLibraryName', 'AwardCollections'];
+            var textFields = ['MdbListApiKey', 'TmdbApiKey', 'RatingsPanelSources', 'AwardFamilies', 'CacheDays', 'AwardCacheDays', 'MaxItemsPerRun', 'AwardLibraryName', 'AwardCollections'];
             var listFields = ['HomeSections'];
             var selectFields = ['Language', 'MovieCommunitySource', 'MovieCommunityFallbackSource', 'MovieCriticSource', 'MovieCriticFallbackSource', 'SeriesCommunitySource', 'SeriesCommunityFallbackSource', 'SeriesCriticSource', 'SeriesCriticFallbackSource'];
             var boolFields = ['EnableFilmweb', 'OverwriteExistingRatings', 'EnableWebUi', 'ReplaceRatingIcons', 'ShowRatingsPanel', 'ShowAwardBadges', 'ShowReviewExcerpts', 'EnableAwards', 'EnableHomeSections', 'EnableAwardLibrary'];
@@ -194,7 +198,7 @@
                 ApiClient.getPluginConfiguration(pluginId).then(function (config) {
                     textFields.forEach(function (f) {
                         var v = page.querySelector('#' + f).value;
-                        config[f] = (f === 'CacheDays' || f === 'MaxItemsPerRun') ? parseInt(v || '0', 10) : (f === 'AwardCollections' ? v.split('\n').map(function (x) { return x.trim(); }).filter(Boolean).join(',') : v);
+                        config[f] = (f === 'CacheDays' || f === 'AwardCacheDays' || f === 'MaxItemsPerRun') ? parseInt(v || '0', 10) : (f === 'AwardCollections' ? v.split('\n').map(function (x) { return x.trim(); }).filter(Boolean).join(',') : v);
                     });
                     selectFields.forEach(function (f) { config[f] = page.querySelector('#' + f).value; });
                     listFields.forEach(function (f) { config[f] = page.querySelector('#' + f).value.split('\n').map(function (x) { return x.trim(); }).filter(Boolean); });

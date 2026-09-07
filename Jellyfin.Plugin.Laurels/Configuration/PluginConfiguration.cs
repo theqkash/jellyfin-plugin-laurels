@@ -41,7 +41,10 @@ public class PluginConfiguration : BasePluginConfiguration
     public bool OverwriteExistingRatings { get; set; } = true;
 
     /// <summary>Gets or sets how long fetched ratings stay valid before being refreshed.</summary>
-    public int CacheDays { get; set; } = 7;
+    public int CacheDays { get; set; } = 365;
+
+    /// <summary>Gets or sets how long an awards lookup stays valid before Wikidata is asked again.</summary>
+    public int AwardCacheDays { get; set; } = 180;
 
     /// <summary>Gets or sets the max number of titles processed per scheduled run (0 = unlimited).</summary>
     public int MaxItemsPerRun { get; set; } = 0;

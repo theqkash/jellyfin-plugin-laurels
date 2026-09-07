@@ -11,7 +11,6 @@ namespace Jellyfin.Plugin.Laurels.Awards;
 /// </summary>
 public sealed class AwardsService
 {
-    private static readonly TimeSpan Ttl = TimeSpan.FromDays(30);
     private readonly ILibraryManager _libraryManager;
     private readonly WikidataAwardsClient _client;
     private readonly AwardsIndex _index;
@@ -45,7 +44,7 @@ public sealed class AwardsService
     public IReadOnlyList<AwardFamily> EnabledFamilies => AwardFamilies.FromCsv(Plugin.Instance?.Configuration.AwardFamilies);
 
     /// <summary>
-    /// Refreshes every movie/series with an IMDb id whose index entry is missing or older than 30 days.
+    /// Refreshes every movie/series with an IMDb id whose index entry is missing or older than AwardCacheDays.
     /// </summary>
     public async Task RefreshAllAsync(bool force, IProgress<double>? progress, CancellationToken cancellationToken)
     {
@@ -74,7 +73,8 @@ public sealed class AwardsService
             }
 
             var existing = _index.Get(item.Id);
-            if (!force && existing is not null && existing.FetchedUtc + Ttl > DateTimeOffset.UtcNow
+            var ttl = TimeSpan.FromDays(Math.Max(1, Plugin.Instance?.Configuration.AwardCacheDays ?? 180));
+            if (!force && existing is not null && existing.FetchedUtc + ttl > DateTimeOffset.UtcNow
                 && string.Equals(existing.Language, "en", StringComparison.OrdinalIgnoreCase))
             {
                 continue;
