@@ -262,7 +262,7 @@
         reviews.slice(0, 3).forEach(function (r) {
             var el = document.createElement('div');
             el.className = 'laurels-review';
-            el.innerHTML = '<span>' + escapeHtml(r.excerpt) + '</span> <span class="who">— ' + escapeHtml(r.author || r.source || '') + (r.rating != null ? ' · ' + r.rating : '') + '</span>';
+            el.innerHTML = '<span>' + escapeHtml(r.excerpt) + '</span> <span class="who"> - ' + escapeHtml(r.author || r.source || '') + (r.rating != null ? ' · ' + r.rating : '') + '</span>';
             wrap.appendChild(el);
         });
         return wrap;
