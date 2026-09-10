@@ -11,7 +11,7 @@ public static class IndexHtmlTransform
 
     /// <summary>Gets the script tag we inject. Relative URL so reverse-proxy sub-paths keep working.</summary>
     public static string ScriptTag =>
-        $"<script {Marker} src=\"../Laurels/Client/laurels.js?v={Plugin.Instance?.Version.ToString() ?? "0"}\" defer></script>";
+        $"<script {Marker} src=\"../Laurels/Client/laurels.js?v={Plugin.Instance?.Version.ToString() ?? "0"}.{File.GetLastWriteTimeUtc(typeof(IndexHtmlTransform).Assembly.Location).Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture)[^8..]}\" defer></script>";
 
     public static string Apply(string html)
     {

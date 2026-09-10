@@ -18,6 +18,7 @@
     var settings = null;
     var sourcesByKey = {};
     var currentItemId = null;
+    var lastData = {};
     var renderTimer = null;
 
     function log() { if (window.__laurelsDebug) { console.log.apply(console, ['[Laurels]'].concat([].slice.call(arguments))); } }
@@ -284,7 +285,8 @@
         if (!block) {
             block = document.createElement('div');
             block.className = 'laurels-block';
-            var content = page.querySelector('.detailPageContent');
+            // Jellyfin 12 renamed the content column to detailPagePrimaryContent; 10.x used detailPageContent.
+            var content = page.querySelector('.detailPagePrimaryContent') || page.querySelector('.detailPageContent');
             if (content) {
                 content.insertBefore(block, content.firstChild);
             } else {
@@ -301,7 +303,11 @@
         if (!page || !itemId) { return; }
         var misc = page.querySelector('.itemMiscInfo-primary');
         if (!misc) { scheduleRender(250); return; }
-        if (page.dataset.laurelsItem === itemId && page.querySelector('.laurels-block')) { return; }
+        if (page.dataset.laurelsItem === itemId && page.querySelector('.laurels-block')) {
+            // Jellyfin re-renders the misc-info row after the item loads; put the source icons back if it did.
+            if (lastData[itemId]) { replaceIcons(page, lastData[itemId]); }
+            return;
+        }
         page.dataset.laurelsItem = itemId;
         currentItemId = itemId;
         clear(page);
@@ -310,6 +316,7 @@
             return getJson('Laurels/Items/' + itemId);
         }).then(function (data) {
             if (currentItemId !== itemId || !data) { return; }
+            lastData[itemId] = data;
             injectStyle();
             var block = getBlock(page, misc);
             if (data.found) {
@@ -350,6 +357,7 @@
         var observer = new MutationObserver(function () {
             var page = activeDetailPage();
             if (page && itemIdFromHash() && !page.querySelector('.laurels-block')) { scheduleRender(150); }
+            else if (page && itemIdFromHash() && page.querySelector('.itemMiscInfo-primary .starRatingContainer .material-icons:not([data-laurels]), .itemMiscInfo-primary .mediaInfoCriticRating:not([data-laurels])')) { scheduleRender(150); }
             if (document.querySelector('.homeSectionsContainer .card[data-id]')) {
                 clearTimeout(homeTimer);
                 homeTimer = setTimeout(decorateHome, 400);
