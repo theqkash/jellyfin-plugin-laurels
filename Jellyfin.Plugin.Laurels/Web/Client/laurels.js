@@ -285,9 +285,13 @@
         if (!block) {
             block = document.createElement('div');
             block.className = 'laurels-block';
-            // Jellyfin 12 renamed the content column to detailPagePrimaryContent; 10.x used detailPageContent.
+            // Inside the overview card (detailSectionContent): the top of the content column is overlaid by the
+            // title ribbon on desktop and custom themes move things around, the card is where text always starts.
+            var card = page.querySelector('.detailSectionContent');
             var content = page.querySelector('.detailPagePrimaryContent') || page.querySelector('.detailPageContent');
-            if (content) {
+            if (card) {
+                card.insertBefore(block, card.firstChild);
+            } else if (content) {
                 content.insertBefore(block, content.firstChild);
             } else {
                 var ribbon = misc.closest('.detailRibbon') || misc;
