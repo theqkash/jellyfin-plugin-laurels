@@ -1,0 +1,17 @@
+---
+name: "Laurels"
+guid: "9c1f6c3a-2b7e-4d5f-9a1e-6f0b2c4d8e71"
+version: "0.1.0.0"
+targetAbi: "12.0.0.0"
+framework: "net10.0"
+overview: "Ratings from many services (incl. Filmweb) and film awards"
+description: >
+  Gathers ratings from IMDb, TMDb, Trakt, Letterboxd, Rotten Tomatoes, Metacritic, RogerEbert and Filmweb,
+  writes the ones you choose into Jellyfin's rating fields, indexes film awards from Wikidata, and shows all of it
+  in the web interface and on the home screen.
+category: "Metadata"
+owner: "theqkash"
+artifacts:
+  - "Jellyfin.Plugin.Laurels.dll"
+changelog: >
+  Initial release.
