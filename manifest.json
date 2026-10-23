@@ -7,6 +7,15 @@
     "owner": "theqkash",
     "category": "Metadata",
     "imageUrl": "",
-    "versions": []
+    "versions": [
+      {
+        "version": "0.1.0.0",
+        "changelog": "",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/theqkash/jellyfin-plugin-laurels/releases/download/v0.1.0.0/laurels_0.1.0.0.zip",
+        "checksum": "61d675f6193a306763bc6f153bc73121",
+        "timestamp": "2026-10-23T13:58:18Z"
+      }
+    ]
   }
 ]
