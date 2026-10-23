@@ -20,9 +20,21 @@ Laurels is a Jellyfin 12 plugin that gathers ratings from many services and film
 - Optional: a free MDBList API key from https://mdblist.com/preferences/ (without it you still get Filmweb ratings and awards).
 - Optional: a TMDb API key for review excerpts.
 
+## Installation
+
+1. In Jellyfin open Dashboard > Plugins > Repositories and add:
+
+   ```
+   https://raw.githubusercontent.com/theqkash/jellyfin-plugin-laurels/main/manifest.json
+   ```
+
+2. Open the Catalog, install Laurels, restart Jellyfin.
+
+Manual install: download the zip from [Releases](https://github.com/theqkash/jellyfin-plugin-laurels/releases) and unpack it into `<jellyfin data>/plugins/Laurels_<version>/`.
+
 ## Getting started
 
-1. Install the plugin from the repository described in the [main README](../README.md), or unpack the release zip into `<jellyfin data>/plugins/Laurels_<version>/`, then restart Jellyfin.
+1. Install the plugin (see above) and restart Jellyfin.
 2. Open Dashboard > Plugins > Laurels, paste your MDBList key and choose which sources feed the community and critic ratings.
 3. Run the scheduled tasks *Refresh Laurels ratings* and *Refresh Laurels awards* once (they also run on their own: daily and weekly).
 4. If File Transformation is installed, reload the browser.
@@ -53,7 +65,7 @@ All endpoints are under `/Laurels`:
 dotnet build Jellyfin.Plugin.Laurels/Jellyfin.Plugin.Laurels.csproj -c Release
 ```
 
-Requires the .NET 10 SDK. The output DLL plus a `meta.json` is a complete plugin.
+Requires the .NET 10 SDK. The output DLL plus a `meta.json` is a complete plugin. `./build-release.sh [version]` builds the zip the catalog expects and updates `manifest.json`; the GitHub workflow does the same when a tag such as `v0.1.1.0` is pushed.
 
 ## Credits
 

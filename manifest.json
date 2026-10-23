@@ -1,0 +1,21 @@
+[
+  {
+    "guid": "9c1f6c3a-2b7e-4d5f-9a1e-6f0b2c4d8e71",
+    "name": "Laurels",
+    "description": "Ratings from many services (incl. Filmweb) and film awards.",
+    "overview": "Ratings from many services (incl. Filmweb) and film awards.",
+    "owner": "theqkash",
+    "category": "Metadata",
+    "imageUrl": "",
+    "versions": [
+      {
+        "version": "0.1.0.0",
+        "changelog": "",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/theqkash/jellyfin-plugin-laurels/releases/download/v0.1.0.0/laurels_0.1.0.0.zip",
+        "checksum": "8d390b8adac159a6c437173f1f2abd6e",
+        "timestamp": "2026-10-23T13:55:05Z"
+      }
+    ]
+  }
+]
