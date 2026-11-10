@@ -25,10 +25,10 @@ Laurels is a Jellyfin 12 plugin that gathers ratings from many services and film
 1. In Jellyfin open Dashboard > Plugins > Repositories and add:
 
    ```
-   https://raw.githubusercontent.com/theqkash/jellyfin-plugin-laurels/main/manifest.json
+   https://raw.githubusercontent.com/theqkash/jellyfin-plugins/main/manifest.json
    ```
 
-2. Open the Catalog, install Laurels, restart Jellyfin.
+2. Open the Catalog, install Laurels, restart Jellyfin. The same repository also lists the other plugins from https://github.com/theqkash/jellyfin-plugins.
 
 Manual install: download the zip from [Releases](https://github.com/theqkash/jellyfin-plugin-laurels/releases) and unpack it into `<jellyfin data>/plugins/Laurels_<version>/`.
 
