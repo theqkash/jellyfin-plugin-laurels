@@ -6,7 +6,7 @@
     "overview": "Ratings from many services (incl. Filmweb) and film awards.",
     "owner": "theqkash",
     "category": "Metadata",
-    "imageUrl": "",
+    "imageUrl": "https://raw.githubusercontent.com/theqkash/jellyfin-plugin-laurels/main/docs/thumb.png",
     "versions": [
       {
         "version": "0.1.1.0",

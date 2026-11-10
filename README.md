@@ -1,8 +1,36 @@
-# Laurels
+<p align="center"><img src="docs/banner.png" alt="Laurels" width="100%"></p>
 
-Laurels is a Jellyfin 12 plugin that gathers ratings from many services and film awards for every movie and series in your library, and shows them in the web interface.
+<p align="center">
+  <a href="https://github.com/theqkash/jellyfin-plugin-laurels/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/theqkash/jellyfin-plugin-laurels?label=release&color=e2a925"></a>
+  <img alt="Jellyfin 12" src="https://img.shields.io/badge/Jellyfin-12-00a4dc?logo=jellyfin&logoColor=white">
+  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-6b7280"></a>
+  <a href="https://discord.gg/CwH8XKRnpz"><img alt="Discord" src="https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white"></a>
+  <a href="https://ko-fi.com/theqkash"><img alt="Ko-fi" src="https://img.shields.io/badge/Ko--fi-support-FF5E5B?logo=kofi&logoColor=white"></a>
+</p>
 
-![Detail page with award badges, the rating strip and source logos in the header](docs/detail-page.png)
+<p align="center"><b>Ratings from every service and the film awards behind them, right on your Jellyfin detail pages.</b><br>
+IMDb, Rotten Tomatoes, Metacritic, Letterboxd, TMDb, Trakt, MyAnimeList and Filmweb, plus Oscars, Cannes, BAFTA and 22 more award families.</p>
+
+<p align="center"><img src="docs/detail-page.png" alt="Detail page with award badges, the rating strip and source logos in the header" width="100%"></p>
+
+## Quick install
+
+In Jellyfin open **Dashboard > Plugins > Repositories**, add
+
+```
+https://raw.githubusercontent.com/theqkash/jellyfin-plugins/main/manifest.json
+```
+
+then install **Laurels** from the Catalog and restart Jellyfin. Details and manual install are [below](#installation).
+
+## Works best with
+
+| Plugin | What it adds to Laurels |
+| --- | --- |
+| [File Transformation](https://github.com/IAmParadox27/jellyfin-plugin-file-transformation) | the rating strip, source logos and award badges in the web interface (without it Laurels still writes ratings into Jellyfin) |
+| [Home Screen Sections](https://github.com/IAmParadox27/jellyfin-plugin-home-sections) | home screen rows such as *Award winners* or *Highest rated on Filmweb* |
+
+Both come from the repository `https://www.iamparadox.dev/jellyfin/plugins/manifest.json`; add it next to the one above.
 
 ## What it does
 
@@ -74,6 +102,10 @@ dotnet build Jellyfin.Plugin.Laurels/Jellyfin.Plugin.Laurels.csproj -c Release
 ```
 
 Requires the .NET 10 SDK. The output DLL plus a `meta.json` is a complete plugin. `./build-release.sh [version]` builds the zip the catalog expects and updates `manifest.json`; the GitHub workflow does the same when a tag such as `v0.1.1.0` is pushed.
+
+## Community and support
+
+Questions, ideas and bug reports are welcome on [Discord](https://discord.gg/CwH8XKRnpz) or in the issues here. If the plugin saves you time, you can buy me a coffee on [Ko-fi](https://ko-fi.com/theqkash).
 
 ## Credits
 
