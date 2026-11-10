@@ -9,6 +9,14 @@
     "imageUrl": "",
     "versions": [
       {
+        "version": "0.1.1.0",
+        "changelog": "",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/theqkash/jellyfin-plugin-laurels/releases/download/v0.1.1.0/laurels_0.1.1.0.zip",
+        "checksum": "ba41812aaa6af513b93e7a14e1f6dee2",
+        "timestamp": "2026-11-10T01:51:14Z"
+      },
+      {
         "version": "0.1.0.0",
         "changelog": "",
         "targetAbi": "12.0.0.0",
