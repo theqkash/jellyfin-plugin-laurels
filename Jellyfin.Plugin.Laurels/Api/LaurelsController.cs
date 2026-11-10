@@ -56,8 +56,9 @@ public sealed class LaurelsController : ControllerBase
     /// <summary>Settings the client needs (no secrets).</summary>
     [HttpGet("ClientSettings")]
     [AllowAnonymous]
-    public ActionResult<ClientSettingsDto> GetClientSettings()
+    public ActionResult<ClientSettingsDto> GetClientSettings([FromQuery] string? lang)
     {
+        using var language = AwardText.UseViewerLanguage(lang);
         var cfg = Plugin.Instance?.Configuration ?? new PluginConfiguration();
         return new ClientSettingsDto
         {
@@ -90,6 +91,11 @@ public sealed class LaurelsController : ControllerBase
             return new ItemRatingsDto { ItemId = itemId, Found = false };
         }
 
+        // the stored applied sources are only set when a refresh writes the item, so older cache files lack them
+        var item = _libraryManager.GetItemById(itemId);
+        var applied = item is null
+            ? (cached.AppliedCommunitySource, cached.AppliedCriticSource)
+            : RatingsService.AppliedSources(item, cached, Plugin.Instance?.Configuration ?? new PluginConfiguration());
         return new ItemRatingsDto
         {
             ItemId = itemId,
@@ -98,8 +104,8 @@ public sealed class LaurelsController : ControllerBase
             Ids = cached.Ids,
             Ratings = cached.Ratings.Where(r => r.Score.HasValue).ToList(),
             Flags = cached.Flags,
-            AppliedCommunitySource = cached.AppliedCommunitySource,
-            AppliedCriticSource = cached.AppliedCriticSource,
+            AppliedCommunitySource = applied.Item1,
+            AppliedCriticSource = applied.Item2,
         };
     }
 
@@ -121,8 +127,9 @@ public sealed class LaurelsController : ControllerBase
     /// <summary>Awards of one item, grouped by family (what the badges show).</summary>
     [HttpGet("Awards/{itemId}")]
     [Authorize]
-    public ActionResult<ItemAwardsDto> GetAwards([FromRoute] Guid itemId)
+    public ActionResult<ItemAwardsDto> GetAwards([FromRoute] Guid itemId, [FromQuery] string? lang)
     {
+        using var language = AwardText.UseViewerLanguage(lang);
         var entry = _awards.Index.Get(itemId);
         var dto = new ItemAwardsDto { ItemId = itemId, Found = entry is not null };
         if (entry is null)
@@ -149,8 +156,8 @@ public sealed class LaurelsController : ControllerBase
                 Wins = wins,
                 Nominations = group.Count(),
                 Year = group.Max(a => a.Year),
-                Categories = group.OrderByDescending(a => a.Won).ThenBy(a => AwardText.CategoryRank(AwardText.ShortCategory(a.Category))).Select(a => (a.Won ? "★ " : "○ ") + AwardText.ShortCategory(a.Category) + (a.Year.HasValue ? " (" + a.Year + ")" : string.Empty)).ToList(),
-                WonCategories = group.Where(a => a.Won).Select(a => AwardText.ShortCategory(a.Category)).Distinct().OrderBy(AwardText.CategoryRank).ToList(),
+                Categories = group.Where(a => AwardText.ShortCategory(a.Category).Length > 0).OrderByDescending(a => a.Won).ThenBy(a => AwardText.CategoryRank(AwardText.ShortCategory(a.Category))).Select(a => (a.Won ? "★ " : "○ ") + AwardText.ShortCategory(a.Category) + (a.Year.HasValue ? " (" + a.Year + ")" : string.Empty)).ToList(),
+                WonCategories = group.Where(a => a.Won).Select(a => AwardText.ShortCategory(a.Category)).Where(c => c.Length > 0).Distinct().OrderBy(AwardText.CategoryRank).ToList(),
             });
         }
 
@@ -175,8 +182,9 @@ public sealed class LaurelsController : ControllerBase
     /// <summary>Captions for home screen cards: what a title won / how it is rated, per section.</summary>
     [HttpPost("Cards")]
     [Authorize]
-    public ActionResult<CardsDto> GetCards([FromBody] CardsRequestDto body)
+    public ActionResult<CardsDto> GetCards([FromBody] CardsRequestDto body, [FromQuery] string? lang)
     {
+        using var language = AwardText.UseViewerLanguage(lang);
         var dto = new CardsDto();
         var definition = Sections.SectionCatalog.Resolve(body.Section ?? string.Empty);
         foreach (var id in body.ItemIds.Distinct().Take(64))
@@ -191,13 +199,13 @@ public sealed class LaurelsController : ControllerBase
                 if (records.Count > 0)
                 {
                     var wins = records.Where(a => a.Won).ToList();
-                    var shown = (wins.Count > 0 ? wins : records).Select(a => AwardText.ShortCategory(a.Category)).Distinct().OrderBy(AwardText.CategoryRank).Take(2).ToList();
+                    var shown = (wins.Count > 0 ? wins : records).Select(a => AwardText.ShortCategory(a.Category)).Where(c => c.Length > 0).Distinct().OrderBy(AwardText.CategoryRank).Take(2).ToList();
                     var fam = AwardFamilies.Get(records[0].Family);
                     var year = records[0].Year;
                     var head = (family is null && fam is not null ? AwardText.FamilyName(fam) + " " : string.Empty) + (year.HasValue ? year.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : string.Empty);
                     var more = (wins.Count > 0 ? wins.Count : records.Count) - shown.Count;
                     caption = (head.Length > 0 ? head + " · " : string.Empty) + string.Join(", ", shown) + (more > 0 ? " +" + more : string.Empty);
-                    tooltip = string.Join("\n", records.OrderByDescending(a => a.Won).ThenBy(a => AwardText.CategoryRank(AwardText.ShortCategory(a.Category))).Select(a => (a.Won ? "★ " : "○ ") + AwardText.ShortCategory(a.Category) + (a.Year.HasValue ? " (" + a.Year + ")" : string.Empty)));
+                    tooltip = string.Join("\n", records.Where(a => AwardText.ShortCategory(a.Category).Length > 0).OrderByDescending(a => a.Won).ThenBy(a => AwardText.CategoryRank(AwardText.ShortCategory(a.Category))).Select(a => (a.Won ? "★ " : "○ ") + AwardText.ShortCategory(a.Category) + (a.Year.HasValue ? " (" + a.Year + ")" : string.Empty)));
                 }
             }
             else if (definition.Kind == "top")

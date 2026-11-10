@@ -5,11 +5,39 @@ namespace Jellyfin.Plugin.Laurels.Awards;
 
 /// <summary>
 /// User-facing strings for sections, collections and captions, in Polish and English.
-/// The language follows the plugin setting, falling back to the server's UI culture.
+/// The server language follows the plugin setting, falling back to the server's UI culture; it names the awards
+/// library and the home sections. Text sent to a browser follows the viewer's own interface language when the
+/// client passes it (see <see cref="UseViewerLanguage"/>).
 /// </summary>
 public static partial class AwardText
 {
-    public static string Language { get; set; } = "en";
+    private static readonly AsyncLocal<string?> ViewerLanguage = new();
+
+    private static string _serverLanguage = "en";
+
+    /// <summary>Gets or sets the language in effect: the viewer's for the current request, else the server's. Setting it changes the server language.</summary>
+    public static string Language
+    {
+        get => ViewerLanguage.Value ?? _serverLanguage;
+        set => _serverLanguage = value;
+    }
+
+    /// <summary>
+    /// Uses the viewer's interface language (for example "en-us" or "pl") until the returned scope is disposed.
+    /// Languages without translations fall back to the server language.
+    /// </summary>
+    public static IDisposable UseViewerLanguage(string? language)
+    {
+        var previous = ViewerLanguage.Value;
+        var l = (language ?? string.Empty).Trim().ToLowerInvariant();
+        ViewerLanguage.Value = l.StartsWith("pl", StringComparison.Ordinal) ? "pl" : l.StartsWith("en", StringComparison.Ordinal) ? "en" : null;
+        return new Scope(previous);
+    }
+
+    private sealed class Scope(string? previous) : IDisposable
+    {
+        public void Dispose() => ViewerLanguage.Value = previous;
+    }
 
     private static bool Pl => Language.StartsWith("pl", StringComparison.OrdinalIgnoreCase);
 
@@ -129,15 +157,42 @@ public static partial class AwardText
             return label;
         }
 
+        // Wikidata items without an English label come through as bare ids such as "Q106150094": not readable
+        if (QidRegex().IsMatch(label.Trim()))
+        {
+            return string.Empty;
+        }
+
         var m = PrefixRegex().Match(label);
         var rest = m.Success ? label[(m.Index + m.Length)..].Trim() : label.Trim();
+        rest = FestivalPrefix().Replace(rest, string.Empty);
+        rest = FestivalSuffix().Replace(rest, string.Empty).Trim();
         if (rest.Length == 0)
         {
             return label;
         }
 
-        return CategoryNames.Localize(char.ToUpper(rest[0], CultureInfo.CurrentCulture) + rest[1..]);
+        // the award itself ("Annie Award", "Saturn Awards", "73rd Primetime Creative Arts Emmy Awards") names no category
+        if (GenericAward().IsMatch(rest))
+        {
+            return string.Empty;
+        }
+
+        return CategoryNames.Localize(char.ToUpper(rest[0], CultureInfo.InvariantCulture) + rest[1..]);
     }
+
+    [GeneratedRegex(@"^Q\d+$", RegexOptions.CultureInvariant)]
+    private static partial Regex QidRegex();
+
+    // "Sitges Film Festival Best Director award", "Cannes Best Director Award": the festival name leads instead of "for"
+    [GeneratedRegex(@"^(?:Sitges Film Festival|Sundance Film Festival|Cannes|Berlinale|Venice)\s+(?=\S)|(?<=\S)\s+award$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex FestivalPrefix();
+
+    [GeneratedRegex(@"\s+(?:of the Festival de Cannes|at (?:the )?Berlinale|at the [\w ]+ Film Festival)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex FestivalSuffix();
+
+    [GeneratedRegex(@"^(?:\d+(?:st|nd|rd|th)\s+)?(?:Primetime\s+)?(?:Creative Arts\s+)?(?:Primetime Emmy|Emmy|Annie|Saturn|Actor|Academy|David di Donatello|Goya|César|BAFTA|Golden Globe)(?:\s+Awards?)?$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex GenericAward();
 
     /// <summary>Orders categories so the headline ones (best picture, director, acting) come first.</summary>
     public static int CategoryRank(string shortCategory)
@@ -166,6 +221,6 @@ public static partial class AwardText
     private static partial Regex RankFeature();
 
     // Award name followed by "for"/"dla"/"za" (or a dash/colon), as used by Wikidata labels in en and pl.
-    [GeneratedRegex(@"^(?:.*?(?:Award|Awards|Prize|Oscar|Oscara|Globe|Glob|BAFTA|César|Cezar|Goya|Emmy|Orzeł|Orły|Saturn|Annie|Raspberry|Malina|Nagroda|Bear|Lion|Palme|Niedźwiedź|Lew|Palma)[^:–-]*?)\s+(?:for|dla|za)\s+|^(?:[^:–-]{3,60})(?:\s[:–-]\s)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"^(?:.*?(?:Award|Awards|Prize|Oscar|Oscara|Globe|Glob|BAFTA|César|Cezar|Goya|Emmy|Orzeł|Orły|Saturn|Annie|Raspberry|Malina|Nagroda|Bear|Lion|Palme|Niedźwiedź|Lew|Palma|Donatello)[^:–-]*?)\s+(?:for|dla|za)\s+|^(?:[^:–-]{3,60})(?:\s[:–-]\s)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex PrefixRegex();
 }

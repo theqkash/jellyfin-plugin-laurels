@@ -56,6 +56,13 @@
 
     function apiClient() { return window.ApiClient || null; }
 
+    // the viewer's interface language, so award names follow it rather than the server's setting
+    function uiLang() {
+        var l = document.documentElement.getAttribute('lang') || '';
+        try { l = l || localStorage.getItem('language') || ''; } catch (e) { /* storage blocked */ }
+        return encodeURIComponent(l || navigator.language || '');
+    }
+
     function getJson(path) {
         var client = apiClient();
         if (!client) { return Promise.reject(new Error('no ApiClient')); }
@@ -64,7 +71,7 @@
 
     function loadSettings() {
         if (settings) { return Promise.resolve(settings); }
-        return fetch(BASE + '/Laurels/ClientSettings', { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (s) {
+        return fetch(BASE + '/Laurels/ClientSettings?lang=' + uiLang(), { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (s) {
             settings = s;
             (s.sources || []).forEach(function (src) { sourcesByKey[src.key] = src; });
             return s;
@@ -238,7 +245,7 @@
                 var ids = [];
                 cards.forEach(function (c) { ids.push(c.dataset.id); });
                 var client = apiClient();
-                client.ajax({ type: 'POST', url: client.getUrl('Laurels/Cards'), dataType: 'json', contentType: 'application/json', data: JSON.stringify({ section: sec.key, itemIds: ids }) }).then(function (res) {
+                client.ajax({ type: 'POST', url: client.getUrl('Laurels/Cards') + '?lang=' + uiLang(), dataType: 'json', contentType: 'application/json', data: JSON.stringify({ section: sec.key, itemIds: ids }) }).then(function (res) {
                     var items = (res && res.items) || {};
                     cards.forEach(function (card) {
                         var info = items[card.dataset.id] || items[(card.dataset.id || '').replace(/-/g, '')];
@@ -331,7 +338,7 @@
                 }
             }
             if (settings.showAwardBadges) {
-                getJson('Laurels/Awards/' + itemId).then(function (awards) {
+                getJson('Laurels/Awards/' + itemId + '?lang=' + uiLang()).then(function (awards) {
                     if (currentItemId !== itemId) { return; }
                     var el = buildAwards(awards);
                     if (el) { block.insertBefore(el, block.firstChild); }

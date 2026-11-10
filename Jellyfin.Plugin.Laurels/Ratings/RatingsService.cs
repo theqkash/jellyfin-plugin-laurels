@@ -303,6 +303,21 @@ public sealed class RatingsService
         return changed;
     }
 
+    /// <summary>
+    /// Which sources the item's star and critic values come from, judged from the current settings and the values
+    /// Jellyfin holds now (so the icons stay right after a settings change, and a value another provider wrote
+    /// gets no logo).
+    /// </summary>
+    public static (string? Community, string? Critic) AppliedSources(BaseItem item, TitleRatings ratings, PluginConfiguration cfg)
+    {
+        var isSeries = item is Series;
+        var community = Pick(ratings, isSeries ? cfg.SeriesCommunitySource : cfg.MovieCommunitySource, isSeries ? cfg.SeriesCommunityFallbackSource : cfg.MovieCommunityFallbackSource, out var communitySource);
+        var critic = Pick(ratings, isSeries ? cfg.SeriesCriticSource : cfg.MovieCriticSource, isSeries ? cfg.SeriesCriticFallbackSource : cfg.MovieCriticFallbackSource, out var criticSource);
+        var communityShown = community?.ValueOutOf10 is { } c && item.CommunityRating is { } ic && Math.Abs(ic - c) < 0.051f;
+        var criticShown = critic?.Score is { } s && item.CriticRating is { } icr && Math.Abs(icr - s) < 0.51f;
+        return (communityShown ? communitySource : null, criticShown ? criticSource : null);
+    }
+
     private static RatingEntry? Pick(TitleRatings ratings, string? primary, string? fallback, out string? used)
     {
         var p = RatingSources.Normalize(primary);

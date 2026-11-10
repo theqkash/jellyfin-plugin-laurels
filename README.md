@@ -2,15 +2,23 @@
 
 Laurels is a Jellyfin 12 plugin that gathers ratings from many services and film awards for every movie and series in your library, and shows them in the web interface.
 
+![Detail page with award badges, the rating strip and source logos in the header](docs/detail-page.png)
+
 ## What it does
 
 - **Ratings from many sources** through the MDBList API: IMDb, TMDb, Trakt, Letterboxd, Rotten Tomatoes (critics and audience), Metacritic (critics and users), RogerEbert.com, MyAnimeList.
 - **Filmweb** (Polish film database): user rating and critics' rating, no API key needed. Titles are matched by original title *and* year, the Filmweb id is stored on the item and can be corrected in the metadata editor, and a Filmweb link appears in the item's external links.
 - **Writes into Jellyfin's own fields**: pick which source feeds the community rating (stars) and the critic rating, with a fallback per field, separately for movies and series.
-- **Awards** from Wikidata: Oscars, Golden Globes, BAFTA, Cannes, Berlinale, Venice, Emmys, César, Goya, European Film Awards, Polish Film Awards (Orły), Gdynia, Sundance, Annie, Saturn, Critics' Choice, SAG, the Razzies and more, with categories and years. No key needed. Award names and categories can be shown in English or Polish.
+- **Awards** from Wikidata: Oscars, Golden Globes, BAFTA, Cannes, Berlinale, Venice, Emmys, César, Goya, European Film Awards, Polish Film Awards (Orły), Gdynia, Sundance, Annie, Saturn, Critics' Choice, SAG, the Razzies and more, with categories and years. No key needed. Award names and categories are shown in English or Polish, following each viewer's interface language (the plugin setting is the fallback and names the awards library).
 - **Awards library**: an optional library ("Awards" or "Nagrody") with collections such as *Oscar winners* or *Cannes nominees*, kept up to date by the awards task. Which collections exist is configurable (`winners:<family>`, `nominees:<family>`).
 - **Web interface** (with the [File Transformation](https://github.com/IAmParadox27/jellyfin-plugin-file-transformation) plugin): the star and tomato icons are replaced by the logo of the source actually used, a strip with all ratings appears on the detail page (each linking to its source page), and award badges show wins and nominations. Review excerpts from TMDb can be shown too (needs a TMDb API key, off by default).
 - **Home screen sections** (with the [Home Screen Sections](https://github.com/IAmParadox27/jellyfin-plugin-home-sections) plugin): "Award winners", "Award nominees", "Highest rated on Filmweb / IMDb / Metacritic / Rotten Tomatoes", or per-family rows such as `winners:cannes`. Computed on the fly; no collections are created for them.
+
+## Screenshots
+
+| Awards and ratings | Settings |
+| --- | --- |
+| ![Award badges and the rating strip](docs/awards-and-ratings.png) | ![Plugin settings](docs/settings.png) |
 
 ## Requirements
 
